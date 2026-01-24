@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "67886088257",
+    "firebase_url": "https://doantotnghiep-aee96-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "doantotnghiep-aee96",
+    "storage_bucket": "doantotnghiep-aee96.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:67886088257:android:41a0e6567225b4367846c0",
+        "android_client_info": {
+          "package_name": "com.example.doantotnghiep"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCz09b7etfPdg95FKwv32_Yb7qDeviIenI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
