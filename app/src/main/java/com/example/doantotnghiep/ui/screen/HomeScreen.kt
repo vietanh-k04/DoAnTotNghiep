@@ -8,18 +8,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.doantotnghiep.data.model.SensorData
 import com.example.doantotnghiep.ui.dashboard.*
 import com.example.doantotnghiep.ui.theme.BackgroundLight
+import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.doantotnghiep.R
 
 @Composable
-fun HomeScreen() {
-    val sensorData = null
-
-    val stationConfig = null
-
-    val currentLevel = 50.0
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -27,11 +30,11 @@ fun HomeScreen() {
             .verticalScroll(rememberScrollState())
             .background(BackgroundLight)
     ) {
-        HybridBadge(isLocal = true)
+        HybridBadge(isLocal = uiState.isLocal)
 
-        WaveCard(waterLevel = currentLevel, maxHeight = 150.0, status = "", lastUpdate = "")
+        WaveCard(waterLevel = uiState.waterLevel, maxHeight = 140.0, status = uiState.status , trend = stringResource(uiState.trend), lastUpdate = uiState.lastUpdated)
 
-        EnvironmentSection(sensorData)
+        EnvironmentSection(SensorData(null, null, uiState.temperature, uiState.humidity, uiState.rainRaw))
 
         Spacer(modifier = Modifier.height(24.dp))
     }

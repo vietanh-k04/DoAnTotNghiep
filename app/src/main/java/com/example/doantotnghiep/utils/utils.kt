@@ -8,3 +8,7 @@ fun String.toSha256(): String {
     val digest = md.digest(bytes)
     return digest.fold("") { str, it -> str + "%02x".format(it) }
 }
+
+fun formatTimestamp(t: Long): String {
+    return "2m ago"
+}

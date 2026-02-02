@@ -68,6 +68,7 @@ dependencies {
 
     // --- 2. HILT (Tiêm phụ thuộc - DI) ---
     implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
     // --- 3. NETWORK (Retrofit - Weather API) ---
