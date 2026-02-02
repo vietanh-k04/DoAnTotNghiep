@@ -60,6 +60,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // --- 1. FIREBASE (Dữ liệu thời gian thực) ---
     implementation(platform(libs.firebase.bom))
@@ -80,6 +81,7 @@ dependencies {
 
     // --- 5. CHARTS (Biểu đồ AI) ---
     implementation(libs.mpandroidchart)
+
 
     // --- 6. BACKGROUND & LOCAL DB ---
     implementation(libs.androidx.room.runtime)

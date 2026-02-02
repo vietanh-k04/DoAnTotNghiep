@@ -1,3 +1,23 @@
 <resources>
-    <string name="app_name">DoAnTotNghiep</string>
+    <string name="app_name">Cảnh báo lũ sớm</string>
+    <string name="dashboard_current_water_level">Mực nước hiện tại</string>
+    <string name="dashboard_value_current_water_level">%.1f m</string>
+    <string name="dashboard_status">Status: %s</string>
+    <string name="dashboard_trend">Trend: Stable</string>
+    <string name="dashboard_last_updated">Last Updated: %s</string>
+    <string name="dashboard_environment">Environment</string>
+    <string name="dashboard_temperature">Temperature</string>
+    <string name="dashboard_temperature_unit">°C</string>
+    <string name="dashboard_humidity">Humidity</string>
+    <string name="dashboard_humidity_unit">%</string>
+    <string name="dashboard_precipitation">Precipitation</string>
+    <string name="dashboard_precipitation_unit">mm/h</string>
+    <string name="dashboard_battery">System Health</string>
+    <string name="dashboard_local">TRẠM ĐỊA PHƯƠNG (&lt;1KM)</string>
+    <string name="dashboard_area">DỮ LIỆU KHU VỰC</string>
+    <string name="bar_menu">Menu</string>
+    <string name="bar_notification">Notifications</string>
+    <string name="bar_home">Home</string>
+    <string name="bar_map">Map</string>
+    <string name="bar_analytic">Analytics</string>
 </resources>
