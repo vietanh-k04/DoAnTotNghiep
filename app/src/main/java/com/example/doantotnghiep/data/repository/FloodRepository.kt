@@ -7,6 +7,7 @@ import com.example.doantotnghiep.utils.toSha256
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -69,5 +70,15 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
         } catch (_: Exception) {
             false
         }
+    }
+
+    suspend fun updateNotificationLog(title: String, message: String, type: Int) {
+        val log = mapOf(
+            "title" to title,
+            "message" to message,
+            "type" to type,
+            "timestamp" to ServerValue.TIMESTAMP
+        )
+        dbRef.child("notification_logs").push().setValue(log).await()
     }
 }

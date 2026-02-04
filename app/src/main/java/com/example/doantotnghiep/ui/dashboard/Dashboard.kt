@@ -1,6 +1,5 @@
 package com.example.doantotnghiep.ui.dashboard
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,16 +20,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.material.icons.filled.Umbrella
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -53,18 +46,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.model.SensorData
+import com.example.doantotnghiep.data.model.WaveCardUiModel
 import com.example.doantotnghiep.ui.theme.*
+import com.example.doantotnghiep.utils.*
 
 @Composable
-fun WaveCard(waterLevel: Double, maxHeight: Double, status: String, trend: String, lastUpdate: String) {
-    val percent = (waterLevel / maxHeight).toFloat().coerceIn(0f, 1f)
-
-    val isDanger = percent > 0.7f
-    val statusColor = if (isDanger) StatusDanger else StatusSuccess
-    val statusIcon = if(isDanger) Icons.Default.Warning else Icons.Default.CheckCircle
-
-    val waveColor = if (isDanger) StatusDanger else WaterBlue
-
+fun WaveCard(data: WaveCardUiModel) {
     Card(
         modifier = Modifier.fillMaxSize().height(350.dp).padding(16.dp).shadow(8.dp, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
@@ -85,7 +72,7 @@ fun WaveCard(waterLevel: Double, maxHeight: Double, status: String, trend: Strin
                     .background(Color.Black.copy(alpha = 0.6f))
             )
 
-            WaveAnimation(modifier = Modifier.fillMaxSize(), waterLevel = percent, waveColor = waveColor)
+            WaveAnimation(modifier = Modifier.fillMaxSize(), waterLevel = data.waterPercent, waveColor = data.waveColor)
 
             Column(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -93,7 +80,7 @@ fun WaveCard(waterLevel: Double, maxHeight: Double, status: String, trend: Strin
             ) {
                 Text(stringResource(R.string.dashboard_current_water_level), color = OffWhite, fontSize = 24.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.padding(bottom = 10.dp))
-                Text(stringResource(R.string.dashboard_value_current_water_level, waterLevel), color = OffWhite, fontSize = 64.sp, fontWeight = FontWeight.ExtraBold)
+                Text(stringResource(R.string.dashboard_value_current_water_level, data.waterLevel), color = OffWhite, fontSize = 64.sp, fontWeight = FontWeight.ExtraBold)
 
                 Surface(
                     color = StatusSuccess.copy(0.4f),
@@ -101,8 +88,8 @@ fun WaveCard(waterLevel: Double, maxHeight: Double, status: String, trend: Strin
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(statusIcon, contentDescription = null, tint = statusColor, modifier = Modifier.size(16.dp))
-                        Text(stringResource(R.string.dashboard_status, status), color = statusColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp), fontWeight = FontWeight.Bold)
+                        Icon(data.statusIcon, contentDescription = null, tint = data.statusColor, modifier = Modifier.size(16.dp))
+                        Text(stringResource(R.string.dashboard_status, stringResource(data.status)), color = data.statusColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -110,14 +97,14 @@ fun WaveCard(waterLevel: Double, maxHeight: Double, status: String, trend: Strin
             Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(stringResource(R.string.dashboard_trend), style = MaterialTheme.typography.labelMedium, color = SurfaceLight, modifier = Modifier.padding(bottom = 5.dp))
-                    Text(trend, style = MaterialTheme.typography.bodyLarge, color = SurfaceLight, fontWeight = FontWeight.Bold)
+                    Text(stringResource(data.trend), style = MaterialTheme.typography.bodyLarge, color = SurfaceLight, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(Modifier.weight(1f))
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(stringResource(R.string.dashboard_last_updated), style = MaterialTheme.typography.labelMedium, color = SurfaceLight, modifier = Modifier.padding(bottom = 5.dp))
-                    Text(lastUpdate, style = MaterialTheme.typography.bodyLarge, color = SurfaceLight, fontWeight = FontWeight.Bold)
+                    Text(data.lastUpdated, style = MaterialTheme.typography.bodyLarge, color = SurfaceLight, fontWeight = FontWeight.Bold)
                 }
 
             }
@@ -193,12 +180,7 @@ fun EnvironmentMetric(icon: ImageVector, iconTint: Color, label: String, value: 
 fun EnvironmentSection(sensorData: SensorData?) {
     val rainRaw = sensorData?.rainVal ?: 1024
 
-    val RainInfor = when {
-        rainRaw > 900 -> Triple(Icons.Default.WbSunny, stringResource(R.string.dashboard_dry), Yellow)
-        rainRaw in 600..900 -> Triple(Icons.Default.Cloud, stringResource(R.string.dashboard_light_rain), TextSelected)
-        rainRaw in 300..599 -> Triple(Icons.Default.Umbrella, stringResource(R.string.dashboard_moderate_rain), WaterBlue)
-        else -> Triple(Icons.Default.Thunderstorm, stringResource(R.string.dashboard_heavy_rain), StatusDanger)
-    }
+    val rainInfor = getRainStatus(rainRaw)
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
@@ -229,7 +211,7 @@ fun EnvironmentSection(sensorData: SensorData?) {
                 EnvironmentMetric(icon = Icons.Default.WaterDrop, iconTint = WaterBlue, label = stringResource(R.string.dashboard_humidity), value = "${sensorData?.humid ?: "--"}", unit = stringResource(R.string.dashboard_humidity_unit))
             }
             item {
-                EnvironmentMetric(icon = RainInfor.first, iconTint = RainInfor.third, label = stringResource(R.string.dashboard_weather), value = RainInfor.second, unit = "")
+                EnvironmentMetric(icon = rainInfor.first, iconTint = rainInfor.third, label = stringResource(R.string.dashboard_weather), value = rainInfor.second, unit = "")
             }
             item {
                 EnvironmentMetric(icon = Icons.Default.BatteryChargingFull, iconTint = StatusSuccess, label = stringResource(R.string.dashboard_battery), value = "98", unit = stringResource(R.string.dashboard_humidity_unit))

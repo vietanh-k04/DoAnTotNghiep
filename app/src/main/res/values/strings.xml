@@ -27,4 +27,21 @@
     <string name="bar_home">Màn hình chính</string>
     <string name="bar_map">Bản đồ</string>
     <string name="bar_analytic">Phân tích</string>
+    <string name="status_safe">Safe</string>
+    <string name="status_warning">Warning</string>
+    <string name="status_danger">Danger</string>
+    <string name="time_not_update">Chưa cập nhật</string>
+    <string name="time_just_finished">Vừa xong</string>
+    <string name="time_1m_ago">1 phút trước</string>
+    <string name="time_m_ago">%s phút trước</string>
+    <string name="time_1h_ago">1 giờ trước</string>
+    <string name="time_h_ago">%s giờ trước</string>
+    <string name="time_yesterday">Hôm qua</string>
+    <string name="dashboard_early_warning">Cảnh báo sớm</string>
+    <string name="alert_danger">BÁO ĐỘNG ĐỎ!</string>
+    <string name="alert_warning">Cảnh báo nước dâng</string>
+    <string name="alert_safe">An toàn</string>
+    <string name="alert_water_level">Mực nước hiện tại: %s</string>
+    <string name="alert_warning_flood">Cảnh báo lũ lụt</string>
+    <string name="alert_warning_flood_2">Cảnh báo mực nước lũ</string>
 </resources>

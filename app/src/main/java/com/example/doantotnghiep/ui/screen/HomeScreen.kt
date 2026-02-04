@@ -11,14 +11,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.doantotnghiep.data.model.SensorData
 import com.example.doantotnghiep.ui.dashboard.*
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.doantotnghiep.R
+import com.example.doantotnghiep.utils.*
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
@@ -32,7 +31,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     ) {
         HybridBadge(isLocal = uiState.isLocal)
 
-        WaveCard(waterLevel = uiState.waterLevel, maxHeight = 140.0, status = uiState.status , trend = stringResource(uiState.trend), lastUpdate = uiState.lastUpdated)
+        WaveCard(data = uiState.toWaveCardUiModel())
 
         EnvironmentSection(SensorData(null, null, uiState.temperature, uiState.humidity, uiState.rainRaw))
 
