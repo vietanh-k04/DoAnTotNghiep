@@ -45,8 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.model.SensorData
-import com.example.doantotnghiep.data.model.WaveCardUiModel
+import com.example.doantotnghiep.data.remote.SensorData
+import com.example.doantotnghiep.data.local.WaveCardUiModel
 import com.example.doantotnghiep.ui.theme.*
 import com.example.doantotnghiep.utils.*
 
@@ -219,3 +219,5 @@ fun EnvironmentSection(sensorData: SensorData?) {
         }
     }
 }
+
+

@@ -12,7 +12,6 @@ val Pink40 = Color(0xFF7D5260)
 
 val BackgroundLight = Color(0xFFF8FAFC)
 val SurfaceLight = Color(0xFFFFFFFF)
-val BorderLight = Color(0xFFE2E8F0)
 
 val OffWhite = Color(0xFFF2F2F2)
 
@@ -39,6 +38,18 @@ val Orange = Color(0xFFFF5722)
 val Cyan = Color(0xFF00BCD4)
 
 val Yellow = Color(0xFFFF9F0A)
+
+val GhostWhite = Color(0xFFF8F9FA)
+
+val SystemRed = Color(0xFFFF3B30)
+
+val SystemOrange = Color(0xFFFF9500)
+
+val EerieBlack = Color(0xFF1C1C1E)
+
+val NavyGray = Color(0xFF161B22)
+
+val DarkGunmetal = Color(0xFF1E232B)
 
 
 

@@ -10,18 +10,20 @@ coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-library = "0.3.5"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.2"
 composeBom = "2024.09.00"
 mapsCompose = "4.3.0"
 materialIconsExtended = "1.6.1"
 mpandroidchart = "v3.1.0"
+osmdroidAndroid = "6.1.18"
 playServicesLocation = "21.0.1"
+playServicesLocationVersion = "21.1.0"
 playServicesMaps = "18.2.0"
 retrofit = "2.9.0"
 roomRuntime = "2.6.1"
 workRuntimeKtx = "2.9.0"
+material3 = "1.4.0"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
@@ -51,8 +53,10 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
 mpandroidchart = { module = "com.github.philjay:mpandroidchart", version.ref = "mpandroidchart" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+play-services-location-v2110 = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocationVersion" }
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -7,8 +7,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.model.HomeUiState
-import com.example.doantotnghiep.data.model.WaveCardUiModel
+import com.example.doantotnghiep.data.local.HomeUiState
+import com.example.doantotnghiep.data.local.WaveCardUiModel
 import com.example.doantotnghiep.ui.theme.*
 
 @Composable

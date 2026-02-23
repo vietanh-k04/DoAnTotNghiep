@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.data.model
+package com.example.doantotnghiep.data.local
 
 import com.example.doantotnghiep.R
 

@@ -1,8 +1,9 @@
 package com.example.doantotnghiep.data.repository
 
-import com.example.doantotnghiep.data.model.SensorData
-import com.example.doantotnghiep.data.model.StationConfig
-import com.example.doantotnghiep.data.model.StationLogs
+import com.example.doantotnghiep.data.remote.NotificationLog
+import com.example.doantotnghiep.data.remote.SensorData
+import com.example.doantotnghiep.data.remote.StationConfig
+import com.example.doantotnghiep.data.remote.StationLogs
 import com.example.doantotnghiep.utils.toSha256
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -77,8 +78,35 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
             "title" to title,
             "message" to message,
             "type" to type,
-            "timestamp" to ServerValue.TIMESTAMP
+            "timestamp" to ServerValue.TIMESTAMP,
+            "isRead" to false
         )
         dbRef.child("notification_logs").push().setValue(log).await()
+    }
+
+    fun getNotificationLog() : Flow<List<NotificationLog>> = callbackFlow {
+        val ref = dbRef.child("notification_logs").orderByChild("timestamp")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(p0: DataSnapshot) {
+                val logs = p0.children.mapNotNull {
+                    it.getValue(NotificationLog::class.java)?.copy(id = it.key ?: "")
+                }.reversed()
+                trySend(logs)
+            }
+
+            override fun onCancelled(p0: DatabaseError) {}
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+    suspend fun markAsRead(logId: String) {
+        dbRef.child("notification_logs").child(logId).child("isRead").setValue(true).await()
+    }
+
+    suspend fun markAllAsRead(logs: List<NotificationLog>) {
+        val updates = mutableMapOf<String, Any>()
+        logs.forEach { if (!it.isRead) updates["/${it.id}/isRead"] = true }
+        if(updates.isNotEmpty()) dbRef.child("notification_logs").updateChildren(updates).await()
     }
 }

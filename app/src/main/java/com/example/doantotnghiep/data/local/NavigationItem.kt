@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.data.model
+package com.example.doantotnghiep.data.local
 
 import androidx.compose.ui.graphics.vector.ImageVector
 

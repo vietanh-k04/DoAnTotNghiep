@@ -12,7 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.doantotnghiep.data.model.SensorData
+import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.ui.dashboard.*
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel

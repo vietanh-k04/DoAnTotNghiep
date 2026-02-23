@@ -4,9 +4,10 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.model.HomeUiState
-import com.example.doantotnghiep.data.model.SensorData
-import com.example.doantotnghiep.data.model.StationConfig
+import com.example.doantotnghiep.data.local.HomeUiState
+import com.example.doantotnghiep.data.remote.NotificationLog
+import com.example.doantotnghiep.data.remote.SensorData
+import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.notification.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,14 +26,26 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState
 
+    private val _notifications = MutableStateFlow<List<NotificationLog>>(emptyList())
+
+    val notification: StateFlow<List<NotificationLog>> = _notifications
+
+    val unreadCount: StateFlow<Int> = _notifications.map { list ->
+        list.count() {!it.isRead}
+    }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
     private var lastWaterLevel = 0.0
 
     private var lastStatus = R.string.status_safe
 
     private var percent = 0f
 
+
     init {
-        observerStationData("station_01")
+        viewModelScope.launch {
+            observerStationData("station_01")
+            repository.getNotificationLog().collect { _notifications.value = it }
+        }
     }
 
     private fun observerStationData(stationId: String) {
@@ -111,5 +127,13 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
                 waterPercent = percent
             )
         }
+    }
+
+    fun markAsRead(log: NotificationLog) {
+        viewModelScope.launch { repository.markAsRead(log.id) }
+    }
+
+    fun markAllAsRead() {
+        viewModelScope.launch { repository.markAllAsRead(_notifications.value) }
     }
 }

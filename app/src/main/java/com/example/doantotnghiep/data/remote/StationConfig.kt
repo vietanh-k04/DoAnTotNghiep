@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.data.model
+package com.example.doantotnghiep.data.remote
 
 data class StationConfig(
     val id: String? = "",
