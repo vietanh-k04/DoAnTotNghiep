@@ -48,4 +48,7 @@
     <string name="map_currentLevel">Mực nước: %s</string>
     <string name="map_list_monitor_stations">Danh sách các trạm quan sát</string>
     <string name="map_count_active_station">Số lượng trạm đang hoạt động: %s</string>
+    <string name="map_value_currentLevel">%s m</string>
+    <string name="map_depth">Độ sâu</string>
+    <string name="map_1h_trend">1h Trend</string>
 </resources>

@@ -1,7 +1,9 @@
 package com.example.doantotnghiep.ui.screen
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,23 +11,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,11 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.StationMapUiModel
 import com.example.doantotnghiep.data.local.Status
-import com.example.doantotnghiep.ui.theme.DarkGunmetal
-import com.example.doantotnghiep.ui.theme.NavyGray
-import com.example.doantotnghiep.ui.theme.StatusDanger
-import com.example.doantotnghiep.ui.theme.StatusSuccess
-import com.example.doantotnghiep.ui.theme.StatusWarning
+import com.example.doantotnghiep.ui.theme.*
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.Circle
@@ -48,7 +50,6 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import kotlin.io.path.Path
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,7 +111,7 @@ fun StationListContent(stations: List<StationMapUiModel>) {
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(stations) { item ->
-
+                StationMapItemCard(item)
             }
         }
     }
@@ -127,7 +128,46 @@ fun StationMapItemCard(station: StationMapUiModel) {
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(48.dp).background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(painter = painterResource(R.drawable.ic_water_drop), contentDescription = null, tint = statusColor)
+                    }
 
+                    Spacer(Modifier.width(12.dp))
+
+                    Column{
+                        Text(station.name ?: "", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).background(statusColor, CircleShape))
+
+                            Spacer(Modifier.width(6.dp))
+
+                            Text(if (station.status == Status.DANGER) "DANGER" else if (station.status == Status.WARNING) "WARNING" else "SAFE",
+                                color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(stringResource(R.string.map_value_currentLevel, station.depth), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.map_depth), color = Color.Gray, fontSize = 12.sp)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Column {
+                    Text(stringResource(R.string.map_1h_trend), color = Color.Gray, fontSize = 12.sp)
+                    val trendText = if (station.trendValue == "RISING") "+${station.trendValue}m ↗" else "${station.trendValue}m ↘"
+                    val trendColor = if (station.trendValue == "RISING") Color(0xFFFF3B30) else Color(0xFF34C759)
+                    Text(trendText, color = trendColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+
+                MiniTrendChart(trendColor = statusColor)
             }
         }
     }
