@@ -1,12 +1,15 @@
-package com.example.doantotnghiep.ui.screen
+package com.example.doantotnghiep.ui.map
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,6 +29,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -38,11 +44,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.StationMapUiModel
-import com.example.doantotnghiep.data.local.Status
 import com.example.doantotnghiep.ui.theme.*
+import com.example.doantotnghiep.utils.*
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
@@ -50,49 +56,79 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(stations: List<StationMapUiModel>) {
+fun MapScreen(
+    stations: List<StationMapUiModel>,
+    isLocationGranted: Boolean,
+    userLocation: LatLng?,
+) {
+    val defaultLocation = LatLng(21.0285, 105.8246)
+
+    val coroutineScope = rememberCoroutineScope()
+
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(21.0285, 105.8246), 11f)
+        position = CameraPosition.fromLatLngZoom(defaultLocation, 11f)
+    }
+
+    LaunchedEffect(userLocation) {
+        if (userLocation != null) {
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newLatLngZoom(userLocation, 14f),
+                durationMs = 1500
+            )
+        }
     }
 
     BottomSheetScaffold(
         scaffoldState = rememberBottomSheetScaffoldState(),
-        sheetContentColor = NavyGray,
-        sheetPeekHeight = 350.dp,
+        sheetContentColor = OffWhite,
+        sheetPeekHeight = 120.dp,
+        sheetDragHandle = { BottomSheetDefaults.DragHandle() },
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetContent = {
+            Box(modifier = Modifier.fillMaxHeight(0.4f)) {
+                StationListContent(
+                    stations = stations,
+                    onStationSingleClicked = {},
+                    onStationDoubleClicked = { station ->
+                        if(station.latitude != 0.0 && station.longitude != 0.0) {
+                            val targetLatLng = LatLng(station.latitude, station.longitude)
 
+                            coroutineScope.launch {
+                                cameraPositionState.animate(
+                                    update = CameraUpdateFactory.newLatLngZoom(targetLatLng, 15f),
+                                    durationMs = 2000
+                                )
+                            }
+                        }
+                    }
+                )
+            }
         }
     ) { paddingValues ->
         GoogleMap(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = true, mapType = MapType.NORMAL),
+            properties = MapProperties(isMyLocationEnabled = isLocationGranted, mapType = MapType.NORMAL),
             uiSettings = MapUiSettings(zoomControlsEnabled = false)
         ) {
             stations.forEach { station ->
                 val stationLatLng = LatLng(station.latitude, station.longitude)
-                val statusColor = when (station.status) {
-                    Status.DANGER -> StatusDanger
-                    Status.WARNING  -> StatusWarning
-                    else -> StatusSuccess
-                }
+                val statusColor = statusColor(station.status)
 
-                Circle(
-                    center = stationLatLng,
-                    radius = station.coverageRadius,
-                    fillColor = statusColor.copy(alpha = 0.2f),
-                    strokeColor = statusColor.copy(alpha = 0.5f),
-                    strokeWidth = 2f
+                AnimatedCoverageCircle(
+                    stationLatLng = stationLatLng,
+                    coverageRadius = station.coverageRadius,
+                    statusColor = statusColor
                 )
 
                 Marker(
                     state = MarkerState(position = stationLatLng),
                     title = station.name,
-                    snippet = stringResource(R.string.map_currentLevel, station.depth)
+                    snippet = stringResource(R.string.map_currentLevel, station.currentLevel)
                 )
             }
         }
@@ -100,31 +136,44 @@ fun MapScreen(stations: List<StationMapUiModel>) {
 }
 
 @Composable
-fun StationListContent(stations: List<StationMapUiModel>) {
+fun StationListContent(
+    stations: List<StationMapUiModel>,
+    onStationSingleClicked: (StationMapUiModel) -> Unit,
+    onStationDoubleClicked: (StationMapUiModel) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Spacer(Modifier.height(8.dp))
 
-        Text(stringResource(R.string.map_list_monitor_stations), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        Text(stringResource(R.string.map_count_active_station, stations.size), fontSize = 14.sp, color = Color.Gray)
+        Text(stringResource(R.string.map_list_monitor_stations), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = EerieBlack)
+        Text(stringResource(R.string.map_count_active_station, stations.size), fontSize = 14.sp, color = NavyGray)
 
         Spacer(Modifier.height(16.dp))
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(stations) { item ->
-                StationMapItemCard(item)
+                StationMapItemCard(
+                    item,
+                    onSingleClick = { onStationSingleClicked(item) },
+                    onDoubleClick = { onStationDoubleClicked(item) },
+                    )
             }
         }
     }
 }
 
 @Composable
-fun StationMapItemCard(station: StationMapUiModel) {
-    val statusColor = if(station.status == Status.DANGER) StatusDanger else if (station.status == Status.WARNING) StatusWarning else StatusSuccess
+fun StationMapItemCard(station: StationMapUiModel, onSingleClick: () -> Unit?, onDoubleClick: () -> Unit?) {
+    val statusColor = statusColor(station.status)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().combinedClickable(
+            onClick = { onSingleClick() },
+            onDoubleClick = { onDoubleClick() }
+        ),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkGunmetal)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(0.5.dp, Color.LightGray.copy(alpha = 0.4f))
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -139,21 +188,21 @@ fun StationMapItemCard(station: StationMapUiModel) {
                     Spacer(Modifier.width(12.dp))
 
                     Column{
-                        Text(station.name ?: "", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(station.name ?: "", color = DarkGunmetal, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).background(statusColor, CircleShape))
 
                             Spacer(Modifier.width(6.dp))
 
-                            Text(if (station.status == Status.DANGER) "DANGER" else if (station.status == Status.WARNING) "WARNING" else "SAFE",
+                            Text(statusText(station.status),
                                 color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(stringResource(R.string.map_value_currentLevel, station.depth), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.map_depth), color = Color.Gray, fontSize = 12.sp)
+                    Text(stringResource(R.string.map_value_currentLevel, station.currentLevel), color = DarkGunmetal, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.map_current_level), color = DarkGunmetal, fontSize = 12.sp)
                 }
             }
 
@@ -162,8 +211,8 @@ fun StationMapItemCard(station: StationMapUiModel) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column {
                     Text(stringResource(R.string.map_1h_trend), color = Color.Gray, fontSize = 12.sp)
-                    val trendText = if (station.trendValue == "RISING") "+${station.trendValue}m ↗" else "${station.trendValue}m ↘"
-                    val trendColor = if (station.trendValue == "RISING") Color(0xFFFF3B30) else Color(0xFF34C759)
+                    val trendText = trendText(station.trendValue)
+                    val trendColor = trendColor(station.trendValue)
                     Text(trendText, color = trendColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
 

@@ -31,7 +31,7 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
     val notification: StateFlow<List<NotificationLog>> = _notifications
 
     val unreadCount: StateFlow<Int> = _notifications.map { list ->
-        list.count() {!it.isRead}
+        list.count {!it.isRead}
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
     private var lastWaterLevel = 0.0
@@ -42,8 +42,8 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
 
     init {
+        observerStationData("station_01")
         viewModelScope.launch {
-            observerStationData("station_01")
             repository.getNotificationLog().collect { _notifications.value = it }
         }
     }
@@ -70,10 +70,10 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
     private fun calculateWaterLevel(data: SensorData?, config: StationConfig?) : Double {
         val offset = config?.calibrationOffset ?: 0
-        val waterLevel = (offset - (data?.distanceRaw ?: 0)).toDouble()
-        percent = waterLevel.toFloat() / offset.toFloat()
-        return waterLevel
-
+        val waterLevel =  (offset - (data?.distanceRaw ?: 0)).toDouble()
+        val waterLevelPos = if(waterLevel < 0) 0.0 else waterLevel
+        percent = waterLevelPos.toFloat() / offset.toFloat()
+        return waterLevelPos
     }
 
     private fun determineStatus(level: Double, config: StationConfig?) : Int {

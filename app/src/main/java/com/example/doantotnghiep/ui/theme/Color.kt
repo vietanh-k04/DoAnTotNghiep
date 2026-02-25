@@ -35,8 +35,6 @@ val AreaContent = Color(0xFF007AFF)
 
 val Orange = Color(0xFFFF5722)
 
-val Cyan = Color(0xFF00BCD4)
-
 val Yellow = Color(0xFFFF9F0A)
 
 val GhostWhite = Color(0xFFF8F9FA)

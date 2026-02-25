@@ -66,7 +66,7 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
     suspend fun updateDeviceKey(stationId: String?, rawKey: String?): Boolean {
         return try {
             val hashedKey = rawKey?.toSha256()
-            dbRef.child("stations").child(stationId ?: "").child("config").child("device_key").setValue(hashedKey).await()
+            dbRef.child("stations").child(stationId ?: "").child("config").child("deviceKey").setValue(hashedKey).await()
             true
         } catch (_: Exception) {
             false

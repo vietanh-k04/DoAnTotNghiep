@@ -7,8 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.local.HomeUiState
-import com.example.doantotnghiep.data.local.WaveCardUiModel
+import com.example.doantotnghiep.data.local.*
 import com.example.doantotnghiep.ui.theme.*
 
 @Composable
@@ -54,3 +53,35 @@ val WaveCardUiModel.waveColor: Color
         R.string.status_warning -> StatusWarning
         else -> WaterBlue
     }
+
+fun statusColor(status: Status) : Color {
+    return when(status) {
+        Status.DANGER -> StatusDanger
+        Status.WARNING  -> StatusWarning
+        else -> StatusSuccess
+    }
+}
+
+fun trendColor(trend: Trend) : Color {
+    return when(trend) {
+        Trend.RISING -> StatusDanger
+        else -> StatusSuccess
+    }
+}
+
+@Composable
+fun trendText(trend: Trend) : String {
+    return when(trend) {
+        Trend.RISING -> stringResource(R.string.map_rising)
+        else -> stringResource(R.string.map_stable)
+    }
+}
+
+@Composable
+fun statusText(status: Status) : String {
+    return when(status) {
+        Status.DANGER -> stringResource(R.string.status_danger)
+        Status.WARNING  -> stringResource(R.string.status_warning)
+        else -> stringResource(R.string.status_safe)
+    }
+}
