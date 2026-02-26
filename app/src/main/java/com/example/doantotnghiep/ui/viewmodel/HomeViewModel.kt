@@ -103,15 +103,7 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
             R.string.status_warning -> R.string.alert_warning
             else -> R.string.alert_safe
         }
-
         notificationHelper.sendAlert(context.getString(title), context.getString(R.string.alert_water_level, level.toString()), status)
-
-        if (status != R.string.status_safe) {
-            val logType = if (status == R.string.status_danger) 2 else 1
-            viewModelScope.launch {
-                repository.updateNotificationLog(context.getString(title), context.getString(R.string.alert_water_level, level.toString()), logType)
-            }
-        }
     }
 
     private fun updateUI(level: Double, status: Int, trend: Int, data: SensorData?) {

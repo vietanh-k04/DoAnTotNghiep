@@ -73,17 +73,6 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
         }
     }
 
-    suspend fun updateNotificationLog(title: String, message: String, type: Int) {
-        val log = mapOf(
-            "title" to title,
-            "message" to message,
-            "type" to type,
-            "timestamp" to ServerValue.TIMESTAMP,
-            "isRead" to false
-        )
-        dbRef.child("notification_logs").push().setValue(log).await()
-    }
-
     fun getNotificationLog() : Flow<List<NotificationLog>> = callbackFlow {
         val ref = dbRef.child("notification_logs").orderByChild("timestamp")
         val listener = object : ValueEventListener {

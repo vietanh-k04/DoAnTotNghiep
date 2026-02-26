@@ -26,11 +26,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -65,6 +71,9 @@ fun MapScreen(
     isLocationGranted: Boolean,
     userLocation: LatLng?,
 ) {
+    var selectedStation by remember { mutableStateOf<StationMapUiModel?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val defaultLocation = LatLng(21.0285, 105.8246)
 
     val coroutineScope = rememberCoroutineScope()
@@ -92,7 +101,9 @@ fun MapScreen(
             Box(modifier = Modifier.fillMaxHeight(0.4f)) {
                 StationListContent(
                     stations = stations,
-                    onStationSingleClicked = {},
+                    onStationSingleClicked = { station ->
+                        selectedStation = station
+                    },
                     onStationDoubleClicked = { station ->
                         if(station.latitude != 0.0 && station.longitude != 0.0) {
                             val targetLatLng = LatLng(station.latitude, station.longitude)
@@ -131,6 +142,17 @@ fun MapScreen(
                     snippet = stringResource(R.string.map_currentLevel, station.currentLevel)
                 )
             }
+        }
+    }
+
+    if(selectedStation != null) {
+        ModalBottomSheet(
+            onDismissRequest = {selectedStation = null},
+            sheetState = sheetState,
+            containerColor = Color.White,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color.LightGray)}
+        ) {
+
         }
     }
 }

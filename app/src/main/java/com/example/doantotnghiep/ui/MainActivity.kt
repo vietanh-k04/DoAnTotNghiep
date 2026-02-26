@@ -25,12 +25,16 @@ import com.example.doantotnghiep.ui.screen.HomeScreen
 import com.example.doantotnghiep.ui.screen.MapScreenWrapper
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.theme.DoAnTotNghiepTheme
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        registerMessagingNotification()
+
         setContent {
             DoAnTotNghiepTheme {
                 MainLayout()
@@ -64,8 +68,7 @@ fun MainLayout(modifier: Modifier = Modifier) {
 fun GetPermissionNotification() {
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-        }
+        onResult = { }
     )
 
     LaunchedEffect(Unit) {
@@ -73,4 +76,9 @@ fun GetPermissionNotification() {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
+}
+
+fun registerMessagingNotification() {
+    FirebaseMessaging.getInstance().subscribeToTopic("flood_warning")
+        .addOnCompleteListener { }
 }
