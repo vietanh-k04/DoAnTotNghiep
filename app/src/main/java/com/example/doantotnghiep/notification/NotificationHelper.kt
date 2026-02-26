@@ -12,6 +12,7 @@ import com.example.doantotnghiep.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
+@Suppress("DEPRECATION")
 class NotificationHelper @Inject constructor(@ApplicationContext private val context: Context) {
     private val channelId = "flood_alerts"
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

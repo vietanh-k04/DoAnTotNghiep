@@ -1,12 +1,17 @@
 package com.example.doantotnghiep.ui
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +42,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainLayout(modifier: Modifier = Modifier) {
     var currentScreen by remember { mutableStateOf("home") }
+
+    GetPermissionNotification()
     Scaffold(
         modifier = modifier,
         topBar = { FloodGuardTopBar() },
@@ -49,6 +56,21 @@ fun MainLayout(modifier: Modifier = Modifier) {
                 stringResource(R.string.bar_map) -> MapScreenWrapper()
                 /*stringResource(R.string.bar_analytic) -> AnalyticScreen()*/
             }
+        }
+    }
+}
+
+@Composable
+fun GetPermissionNotification() {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }

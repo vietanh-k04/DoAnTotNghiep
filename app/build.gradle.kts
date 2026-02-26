@@ -66,6 +66,7 @@ dependencies {
     // --- 1. FIREBASE (Dữ liệu thời gian thực) ---
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.messaging)
 
     // --- 2. HILT (Tiêm phụ thuộc - DI) ---
     implementation(libs.hilt.android)
