@@ -49,5 +49,9 @@ val NavyGray = Color(0xFF161B22)
 
 val DarkGunmetal = Color(0xFF1E232B)
 
+val CloudWhite = Color(0xFFF3F4F6)
+
+val BrightGray = Color(0xFFE5E7EB)
+
 
 

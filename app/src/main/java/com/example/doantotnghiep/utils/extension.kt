@@ -85,3 +85,12 @@ fun statusText(status: Status) : String {
         else -> stringResource(R.string.status_safe)
     }
 }
+
+@Composable
+fun statusIcon(status: Status) : ImageVector {
+    return when (status) {
+        Status.DANGER -> Icons.Default.Dangerous
+        Status.WARNING -> Icons.Default.Warning
+        else -> Icons.Default.CheckCircle
+    }
+}
