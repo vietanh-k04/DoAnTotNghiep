@@ -149,10 +149,11 @@ fun MapScreen(
         ModalBottomSheet(
             onDismissRequest = {selectedStation = null},
             sheetState = sheetState,
-            containerColor = Color.White,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = Color.LightGray)}
+            containerColor = Color.White
         ) {
+            StationDetailContent(station = selectedStation!!) {
 
+            }
         }
     }
 }

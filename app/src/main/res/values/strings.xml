@@ -56,4 +56,5 @@
     <string name="map_stable">STABLE</string>
     <string name="map_location">Tọa độ: %1$.4f, %2$.4f</string>
     <string name="map_view_history">Xem lịch sử</string>
+    <string name="map_temperature">%s °C</string>
 </resources>

@@ -51,7 +51,10 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                                 latitude = (if(config.latitude == 0.0) 21.0285 else config.latitude) ?: 0.0,
                                 status = statusStr,
                                 longitude = (if(config.longitude == 0.0) 105.8542 else config.longitude) ?: 0.0,
-                                coverageRadius = 3000.0
+                                coverageRadius = 3000.0,
+                                temp = sensorData.temp ?: 0.0,
+                                humid = sensorData.humid ?: 0.0,
+                                rainVal = sensorData.rainVal ?: 0
                             )
 
                             _stationsMap.update { currentMap ->

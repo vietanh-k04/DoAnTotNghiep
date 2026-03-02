@@ -9,5 +9,8 @@ data class StationMapUiModel (
     val trendPoints: List<Float> = emptyList(),
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
-    val coverageRadius: Double = 3000.0
+    val coverageRadius: Double = 3000.0,
+    val temp: Double = 0.0,
+    val humid: Double = 0.0,
+    val rainVal: Int = 0
 )
