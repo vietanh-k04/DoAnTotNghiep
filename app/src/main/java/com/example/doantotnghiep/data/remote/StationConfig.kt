@@ -8,5 +8,5 @@ data class StationConfig(
     var deviceKey: String? = "",
     var calibrationOffset: Int? = 0,
     var warningThreshold: Double? = 0.0,
-    var dangerThreshold: Double? = 0.0
+    var dangerThreshold: Double? = 0.0,
 )

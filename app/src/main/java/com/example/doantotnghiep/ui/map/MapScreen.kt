@@ -105,8 +105,8 @@ fun MapScreen(
                         selectedStation = station
                     },
                     onStationDoubleClicked = { station ->
-                        if(station.latitude != 0.0 && station.longitude != 0.0) {
-                            val targetLatLng = LatLng(station.latitude, station.longitude)
+                        if(station.stationConfig.latitude != 0.0 && station.stationConfig.longitude != 0.0) {
+                            val targetLatLng = LatLng(station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0)
 
                             coroutineScope.launch {
                                 cameraPositionState.animate(
@@ -127,7 +127,7 @@ fun MapScreen(
             uiSettings = MapUiSettings(zoomControlsEnabled = false)
         ) {
             stations.forEach { station ->
-                val stationLatLng = LatLng(station.latitude, station.longitude)
+                val stationLatLng = LatLng(station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0)
                 val statusColor = statusColor(station.status)
 
                 AnimatedCoverageCircle(
@@ -138,8 +138,8 @@ fun MapScreen(
 
                 Marker(
                     state = MarkerState(position = stationLatLng),
-                    title = station.name,
-                    snippet = stringResource(R.string.map_currentLevel, station.currentLevel)
+                    title = station.stationConfig.name,
+                    snippet = stringResource(R.string.map_currentLevel, station.sensorData.distanceRaw ?: 0.0)
                 )
             }
         }
@@ -151,9 +151,7 @@ fun MapScreen(
             sheetState = sheetState,
             containerColor = Color.White
         ) {
-            StationDetailContent(station = selectedStation!!) {
-
-            }
+            StationDetailContent(station = selectedStation!!)
         }
     }
 }
@@ -211,7 +209,7 @@ fun StationMapItemCard(station: StationMapUiModel, onSingleClick: () -> Unit?, o
                     Spacer(Modifier.width(12.dp))
 
                     Column{
-                        Text(station.name ?: "", color = DarkGunmetal, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(station.stationConfig.name ?: "", color = DarkGunmetal, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(6.dp).background(statusColor, CircleShape))
 
@@ -224,7 +222,7 @@ fun StationMapItemCard(station: StationMapUiModel, onSingleClick: () -> Unit?, o
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(stringResource(R.string.map_value_currentLevel, station.currentLevel), color = DarkGunmetal, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.map_value_currentLevel, station.sensorData.distanceRaw ?: 0.0), color = DarkGunmetal, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Text(stringResource(R.string.map_current_level), color = DarkGunmetal, fontSize = 12.sp)
                 }
             }

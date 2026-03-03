@@ -3,6 +3,8 @@ package com.example.doantotnghiep.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.data.local.*
+import com.example.doantotnghiep.data.remote.SensorData
+import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,18 +45,12 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                             }
 
                             val uiModel = StationMapUiModel(
-                                id = stationId,
-                                name = config.name ?: "",
-                                currentLevel = if(level < 0) 0.0 else level,
+                                sensorData = SensorData(sensorData.timestamp, if(level < 0) 0 else level.toInt(), sensorData.temp, sensorData.humid, sensorData.rainVal),
+                                stationConfig = StationConfig(id = config.id, name = config.name, latitude = config.latitude, longitude = config.longitude, deviceKey = config.deviceKey, calibrationOffset = config.calibrationOffset, warningThreshold = config.warningThreshold, dangerThreshold = config.dangerThreshold),
                                 trendValue = Trend.STABLE,
                                 trendPoints = listOf(10f, 20f, 15f, 30f),
-                                latitude = (if(config.latitude == 0.0) 21.0285 else config.latitude) ?: 0.0,
                                 status = statusStr,
-                                longitude = (if(config.longitude == 0.0) 105.8542 else config.longitude) ?: 0.0,
                                 coverageRadius = 3000.0,
-                                temp = sensorData.temp ?: 0.0,
-                                humid = sensorData.humid ?: 0.0,
-                                rainVal = sensorData.rainVal ?: 0
                             )
 
                             _stationsMap.update { currentMap ->

@@ -47,13 +47,13 @@ import com.example.doantotnghiep.ui.theme.WaterBlue
 import com.example.doantotnghiep.utils.*
 
 @Composable
-fun StationDetailContent(station: StationMapUiModel, onDismiss: () -> Unit) {
+fun StationDetailContent(station: StationMapUiModel) {
     val statusColor = statusColor(station.status)
-    val rainInfor = getRainStatus(station.rainVal)
+    val rainInfor = getRainStatus(station.sensorData.rainVal ?: 0)
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).padding(bottom = 24.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(text = station.name ?: "", fontSize = 24.sp, color = DarkGunmetal, fontWeight = FontWeight.Bold)
+            Text(text = station.stationConfig.name ?: "", fontSize = 24.sp, color = DarkGunmetal, fontWeight = FontWeight.Bold)
 
             Surface(
                 color = statusColor.copy(alpha = 0.1f),
@@ -78,7 +78,7 @@ fun StationDetailContent(station: StationMapUiModel, onDismiss: () -> Unit) {
             Spacer(modifier = Modifier.width(4.dp))
 
             Text(
-                text = stringResource(R.string.map_location, station.latitude, station.longitude),
+                text = stringResource(R.string.map_location, station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0),
                 color = Color.Gray,
                 fontSize = 14.sp
             )
@@ -91,7 +91,7 @@ fun StationDetailContent(station: StationMapUiModel, onDismiss: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.WaterDrop,
                 iconColor = WaterBlue,
-                value = stringResource(R.string.map_value_currentLevel, station.currentLevel),
+                value = stringResource(R.string.map_value_currentLevel, station.sensorData.distanceRaw ?: 0.0),
                 label = stringResource(R.string.map_current_level)
             )
 
@@ -99,7 +99,7 @@ fun StationDetailContent(station: StationMapUiModel, onDismiss: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Thermostat,
                 iconColor = Orange,
-                value = stringResource(R.string.map_temperature, station.temp),
+                value = stringResource(R.string.map_temperature, station.sensorData.temp ?: 0.0),
                 label = stringResource(R.string.dashboard_temperature)
             )
 
