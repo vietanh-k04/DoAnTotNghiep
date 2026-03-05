@@ -72,8 +72,16 @@ fun MapScreen(
     userLocation: LatLng?,
 ) {
     var selectedStation by remember { mutableStateOf<StationMapUiModel?>(null) }
+
+    var showPasswordPrompt by remember { mutableStateOf(false) }
+
     var showSettingsSheet by remember { mutableStateOf(false) }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val passwordSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val settingsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val defaultLocation = LatLng(21.0285, 105.8246)
 
@@ -153,21 +161,42 @@ fun MapScreen(
             containerColor = Color.White
         ) {
             StationDetailContent(station = selectedStation!!, onSettingClick = {
-                showSettingsSheet = true
+                showPasswordPrompt = true
             })
         }
     }
 
-    if (showSettingsSheet && selectedStation != null) {
+    if(showPasswordPrompt && selectedStation != null) {
         ModalBottomSheet(
-            onDismissRequest = { showSettingsSheet = false }
+            onDismissRequest = { showPasswordPrompt = false },
+            sheetState = passwordSheetState,
+            containerColor = Color.White
+        ) {
+            PasswordPromptContent(
+                onDismiss = {showPasswordPrompt = false},
+                correctHash = selectedStation!!.stationConfig.deviceKey ?: "",
+                onVerifySuccess = {
+                    showPasswordPrompt = false
+                    showSettingsSheet = true
+                }
+            )
+        }
+    }
+
+    if(showSettingsSheet && selectedStation != null) {
+        ModalBottomSheet(
+            onDismissRequest = {showSettingsSheet = false},
+            sheetState = settingsSheetState,
+            containerColor = Color.White
         ) {
             StationSettingContent(
                 station = selectedStation!!,
-                onDismiss = { showSettingsSheet = false },
-                onSave = { warning, danger ->
-                    showSettingsSheet = false
-                }
+                onDismiss = {showSettingsSheet = false},
+                onSave = { newName, newOffset, newWarning, newDanger ->
+
+                },
+                onRequestLocationUpdate = {},
+                onRequestOffsetUpdate = {}
             )
         }
     }
@@ -179,22 +208,38 @@ fun StationListContent(
     onStationSingleClicked: (StationMapUiModel) -> Unit,
     onStationDoubleClicked: (StationMapUiModel) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-        Spacer(Modifier.height(8.dp))
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Column {
+                Spacer(Modifier.height(8.dp))
 
-        Text(stringResource(R.string.map_list_monitor_stations), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = EerieBlack)
-        Text(stringResource(R.string.map_count_active_station, stations.size), fontSize = 14.sp, color = NavyGray)
+                Text(
+                    text = stringResource(R.string.map_list_monitor_stations),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = EerieBlack
+                )
+                Text(
+                    text = stringResource(R.string.map_count_active_station, stations.size),
+                    fontSize = 14.sp,
+                    color = NavyGray
+                )
 
-        Spacer(Modifier.height(16.dp))
-
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(stations) { item ->
-                StationMapItemCard(
-                    item,
-                    onSingleClick = { onStationSingleClicked(item) },
-                    onDoubleClick = { onStationDoubleClicked(item) },
-                    )
+                Spacer(Modifier.height(4.dp))
             }
+        }
+
+        items(stations) { item ->
+            StationMapItemCard(
+                station = item,
+                onSingleClick = { onStationSingleClicked(item) },
+                onDoubleClick = { onStationDoubleClicked(item) }
+            )
         }
     }
 }
@@ -280,5 +325,3 @@ fun MiniTrendChart(trendColor: Color) {
         drawPath(fillPath, brush = Brush.verticalGradient(listOf(trendColor.copy(alpha = 0.3f), Color.Transparent)))
     }
 }
-
-

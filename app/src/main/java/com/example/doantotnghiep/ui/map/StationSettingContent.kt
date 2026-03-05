@@ -17,13 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Height
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.rounded.Dangerous
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,8 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -61,28 +62,35 @@ fun StationSettingContent(
     station: StationMapUiModel,
     onDismiss: () -> Unit,
     onSave: (String, Float, Float, Float) -> Unit,
-    onRequestLocationUpdate: () -> Unit
+    onRequestLocationUpdate: () -> Unit,
+    onRequestOffsetUpdate: () -> Unit
 ) {
     var nameValue by remember(station.stationConfig.id) {
         mutableStateOf(station.stationConfig.name ?: "")
     }
 
     var offsetValue by remember(station.stationConfig.id) {
-        mutableStateOf(station.stationConfig.calibrationOffset ?: 0)
+        mutableIntStateOf(station.stationConfig.calibrationOffset ?: 0)
     }
 
     var warningValue by remember(station.stationConfig.id) {
-        mutableStateOf(station.stationConfig.warningThreshold?.toFloat() ?: 0f)
+        mutableFloatStateOf(station.stationConfig.warningThreshold?.toFloat() ?: 0f)
     }
 
     var dangerValue by remember(station.stationConfig.id) {
-        mutableStateOf(station.stationConfig.dangerThreshold?.toFloat() ?: 0f)
+        mutableFloatStateOf(station.stationConfig.dangerThreshold?.toFloat() ?: 0f)
     }
 
     var isFetchingLocation by remember { mutableStateOf(false) }
 
     LaunchedEffect(station.stationConfig.latitude, station.stationConfig.longitude) {
         isFetchingLocation = false
+    }
+
+    var isFetchingOffset by remember { mutableStateOf(false) }
+
+    LaunchedEffect(station.stationConfig.calibrationOffset) {
+        isFetchingOffset = false
     }
 
     Column(
@@ -105,16 +113,60 @@ fun StationSettingContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        Surface(
+            onClick = {
+                if(!isFetchingOffset) {
+                    isFetchingOffset = true
+                    onRequestOffsetUpdate()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            color = GhostWhite,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, if(isFetchingOffset) VividBlue else BrightGray)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Height, contentDescription = null, tint = if(isFetchingOffset) VividBlue else Color.Gray)
 
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isFetchingOffset) stringResource(R.string.map_is_fetching_offset) else stringResource(R.string.map_fetch_offset),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = if(isFetchingOffset) VividBlue else DarkGunmetal
+                    )
+
+                    Text(
+                        text = stringResource(R.string.map_max_range, station.stationConfig.calibrationOffset ?: 0),
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                if(isFetchingOffset) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = VividBlue, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Sync, contentDescription = null, tint = Color.Gray)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         ThresholdItem(
             title = stringResource(R.string.map_warning_station),
             value = warningValue,
             onValueChange = {
-                if(it < dangerValue) warningValue = it
+                if(it <= dangerValue) warningValue = it
             },
             icon = Icons.Rounded.Warning,
-            color = StatusWarning
+            color = StatusWarning,
+            maxRange = offsetValue.toFloat()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -123,10 +175,11 @@ fun StationSettingContent(
             title = stringResource(R.string.map_danger_station),
             value = dangerValue,
             onValueChange = {
-                if(it > warningValue) dangerValue = it
+                if(it >= warningValue) dangerValue = it
             },
             icon = Icons.Rounded.Dangerous,
-            color = StatusDanger
+            color = StatusDanger,
+            maxRange = offsetValue.toFloat()
         )
 
         Surface(
@@ -141,7 +194,30 @@ fun StationSettingContent(
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, if(isFetchingLocation) VividBlue else BrightGray)
         ) {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = if (isFetchingLocation) VividBlue else Color.Gray)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if(isFetchingLocation) stringResource(R.string.map_is_fetching_location) else stringResource(R.string.map_fetch_location),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if(isFetchingLocation) VividBlue else DarkGunmetal
+                    )
 
+                    Text(
+                        text = stringResource(R.string.map_location_on_value, station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0),
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                if(isFetchingLocation) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = VividBlue, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Sync, contentDescription = null, tint = Color.Gray)
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -153,7 +229,7 @@ fun StationSettingContent(
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, Color.LightGray)
             ) {
-                Text(stringResource(R.string.map_cancel), color = DarkGunmetal)
+                Text(stringResource(R.string.cancel), color = DarkGunmetal)
             }
 
             Button(
@@ -176,7 +252,7 @@ fun ThresholdItem(
     onValueChange: (Float) -> Unit,
     icon: ImageVector,
     color: Color,
-    maxRange: Float = 10f
+    maxRange: Float
 ) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Box(
@@ -200,7 +276,7 @@ fun ThresholdItem(
             ) {
                 Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
 
-                Text(text = String.format("%.1fm", value), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
+                Text(text = String.format("%.1f cm", value), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
             }
 
             Slider(
