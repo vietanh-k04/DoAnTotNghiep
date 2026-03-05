@@ -53,5 +53,7 @@ val CloudWhite = Color(0xFFF3F4F6)
 
 val BrightGray = Color(0xFFE5E7EB)
 
+val VividBlue = Color(0xFF007AFF)
+
 
 

@@ -47,7 +47,7 @@ import com.example.doantotnghiep.ui.theme.WaterBlue
 import com.example.doantotnghiep.utils.*
 
 @Composable
-fun StationDetailContent(station: StationMapUiModel) {
+fun StationDetailContent(station: StationMapUiModel, onSettingClick: () -> Unit) {
     val statusColor = statusColor(station.status)
     val rainInfor = getRainStatus(station.sensorData.rainVal ?: 0)
 
@@ -134,7 +134,9 @@ fun StationDetailContent(station: StationMapUiModel) {
             }
 
             Surface(
-                onClick = {},
+                onClick = {
+                    onSettingClick()
+                },
                 shape = RoundedCornerShape(16.dp),
                 color = CloudWhite,
                 border = BorderStroke(1.dp, BrightGray),

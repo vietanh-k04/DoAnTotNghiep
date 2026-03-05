@@ -58,4 +58,13 @@
     <string name="map_view_history">Xem lịch sử</string>
     <string name="map_temperature">%s °C</string>
     <string name="map_setting_station">Cài đặt ngưỡng trạm</string>
+    <string name="map_0m">0m</string>
+    <string name="map_max_range">%s cm</string>
+    <string name="map_warning_station">Ngưỡng cảnh báo</string>
+    <string name="map_danger_station">Ngưỡng nguy hiểm</string>
+    <string name="map_location_on">Tọa độ thiết bị (Location)</string>
+    <string name="map_location_on_value">%1$.4f, %2$.4f</string>
+    <string name="map_cancel">Hủy</string>
+    <string name="map_save">Lưu thay đổi</string>
+    <string name="map_station_name">Tên trạm</string>
 </resources>

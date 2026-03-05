@@ -72,6 +72,7 @@ fun MapScreen(
     userLocation: LatLng?,
 ) {
     var selectedStation by remember { mutableStateOf<StationMapUiModel?>(null) }
+    var showSettingsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val defaultLocation = LatLng(21.0285, 105.8246)
@@ -151,7 +152,23 @@ fun MapScreen(
             sheetState = sheetState,
             containerColor = Color.White
         ) {
-            StationDetailContent(station = selectedStation!!)
+            StationDetailContent(station = selectedStation!!, onSettingClick = {
+                showSettingsSheet = true
+            })
+        }
+    }
+
+    if (showSettingsSheet && selectedStation != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showSettingsSheet = false }
+        ) {
+            StationSettingContent(
+                station = selectedStation!!,
+                onDismiss = { showSettingsSheet = false },
+                onSave = { warning, danger ->
+                    showSettingsSheet = false
+                }
+            )
         }
     }
 }
