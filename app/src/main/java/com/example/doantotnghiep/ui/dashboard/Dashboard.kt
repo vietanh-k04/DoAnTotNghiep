@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -199,22 +196,47 @@ fun EnvironmentSection(sensorData: SensorData?) {
             }
         }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.height(240.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            item {
-                EnvironmentMetric(icon = Icons.Default.Thermostat, iconTint = Orange ,label = stringResource(R.string.dashboard_temperature), value = "${sensorData?.temp ?: "--"}", unit = stringResource(R.string.dashboard_temperature_unit))
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.weight(1f)) {
+                    EnvironmentMetric(
+                        icon = Icons.Default.Thermostat,
+                        iconTint = Orange,
+                        label = stringResource(R.string.dashboard_temperature),
+                        value = stringResource(R.string.dashboard_value, sensorData?.temp ?: ""),
+                        unit = stringResource(R.string.dashboard_temperature_unit)
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    EnvironmentMetric(
+                        icon = Icons.Default.WaterDrop,
+                        iconTint = WaterBlue,
+                        label = stringResource(R.string.dashboard_humidity),
+                        value = stringResource(R.string.dashboard_value, sensorData?.humid ?: "--"),
+                        unit = stringResource(R.string.dashboard_humidity_unit)
+                    )
+                }
             }
-            item {
-                EnvironmentMetric(icon = Icons.Default.WaterDrop, iconTint = WaterBlue, label = stringResource(R.string.dashboard_humidity), value = "${sensorData?.humid ?: "--"}", unit = stringResource(R.string.dashboard_humidity_unit))
-            }
-            item {
-                EnvironmentMetric(icon = rainInfor.first, iconTint = rainInfor.third, label = stringResource(R.string.dashboard_weather), value = rainInfor.second, unit = "")
-            }
-            item {
-                EnvironmentMetric(icon = Icons.Default.BatteryChargingFull, iconTint = StatusSuccess, label = stringResource(R.string.dashboard_battery), value = "98", unit = stringResource(R.string.dashboard_humidity_unit))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.weight(1f)) {
+                    EnvironmentMetric(
+                        icon = rainInfor.first,
+                        iconTint = rainInfor.third,
+                        label = stringResource(R.string.dashboard_weather),
+                        value = rainInfor.second,
+                        unit = ""
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    EnvironmentMetric(
+                        icon = Icons.Default.BatteryChargingFull,
+                        iconTint = StatusSuccess,
+                        label = stringResource(R.string.dashboard_battery),
+                        value = "98",
+                        unit = stringResource(R.string.dashboard_humidity_unit)
+                    )
+                }
             }
         }
     }

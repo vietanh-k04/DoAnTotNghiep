@@ -1,5 +1,6 @@
 package com.example.doantotnghiep.utils
 
+import android.location.Location
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.example.doantotnghiep.R
@@ -40,6 +41,14 @@ fun formatTimeAgo(timestamp: Long): String {
             val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             sdf.format(Date(timestamp))
         }
+    }
+}
+
+object LocationUtils {
+    fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val results = FloatArray(1)
+        Location.distanceBetween(lat1, lon1, lat2, lon2, results)
+        return results[0]
     }
 }
 

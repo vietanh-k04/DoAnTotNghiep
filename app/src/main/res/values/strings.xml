@@ -8,6 +8,7 @@
     <string name="dashboard_environment">Thông số môi trường</string>
     <string name="dashboard_history">Xem lại thông số</string>
     <string name="dashboard_temperature">Nhiệt độ</string>
+    <string name="dashboard_value">%s</string>
     <string name="dashboard_temperature_unit">°C</string>
     <string name="dashboard_humidity">Độ ẩm</string>
     <string name="dashboard_humidity_unit">%</string>

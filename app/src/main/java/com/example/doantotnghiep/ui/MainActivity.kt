@@ -17,12 +17,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.example.doantotnghiep.R
+import com.example.doantotnghiep.data.local.ScreenRoute
 import com.example.doantotnghiep.ui.bar.FloodGuardBottomBar
 import com.example.doantotnghiep.ui.bar.FloodGuardTopBar
 import com.example.doantotnghiep.ui.screen.HomeScreen
 import com.example.doantotnghiep.ui.screen.MapScreenWrapper
+import com.example.doantotnghiep.ui.screen.rememberLocationState
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.theme.DoAnTotNghiepTheme
 import com.google.firebase.messaging.FirebaseMessaging
@@ -45,7 +45,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainLayout(modifier: Modifier = Modifier) {
-    var currentScreen by remember { mutableStateOf("home") }
+    var currentScreen by remember { mutableStateOf(ScreenRoute.HOME) }
+
+    val locationState = rememberLocationState()
 
     GetPermissionNotification()
     Scaffold(
@@ -56,9 +58,10 @@ fun MainLayout(modifier: Modifier = Modifier) {
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             when(currentScreen) {
-                stringResource(R.string.bar_home) -> HomeScreen()
-                stringResource(R.string.bar_map) -> MapScreenWrapper()
-                /*stringResource(R.string.bar_analytic) -> AnalyticScreen()*/
+                ScreenRoute.HOME -> HomeScreen(userLocation = locationState.location)
+                ScreenRoute.MAP -> MapScreenWrapper()
+                /*ScreenRoute.ANALYTIC -> AnalyticScreen()*/
+
             }
         }
     }

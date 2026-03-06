@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.HomeUiState
+import com.example.doantotnghiep.data.local.StationMapUiModel
 import com.example.doantotnghiep.data.remote.NotificationLog
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.notification.NotificationHelper
+import com.example.doantotnghiep.utils.LocationUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -40,11 +42,39 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
     private var percent = 0f
 
+    private val RADIUS_LIMIT = 3000f
 
     init {
         observerStationData("station_01")
         viewModelScope.launch {
             repository.getNotificationLog().collect { _notifications.value = it }
+        }
+    }
+
+    fun scanAndSyncData(userLat: Double, userLng: Double, allStations: List<StationMapUiModel>) {
+        var closetStation: StationMapUiModel? = null
+        var minDistance = Float.MAX_VALUE
+
+        for(station in allStations) {
+            val stLat = station.stationConfig.latitude ?: continue
+            val stLng = station.stationConfig.longitude ?: continue
+
+            val distance = LocationUtils.calculateDistance(userLat, userLng, stLat, stLng)
+
+            if(distance <= RADIUS_LIMIT && distance < minDistance) {
+                minDistance = distance
+                closetStation = station
+            }
+        }
+
+        if(closetStation != null) {
+            observerStationData(closetStation.stationConfig.id ?: "")
+        } else {
+            _uiState.update { currentState ->
+                currentState.copy(isLocal = false)
+            }
+
+            fetchWeatherDataFromApi(userLat, userLng)
         }
     }
 
@@ -66,6 +96,10 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
                 updateUI(currentLevel, status, trend, sensorData)
             }
         }
+    }
+
+    private fun fetchWeatherDataFromApi(lat: Double, lng: Double) {
+
     }
 
     private fun calculateWaterLevel(data: SensorData?, config: StationConfig?) : Double {

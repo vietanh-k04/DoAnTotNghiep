@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Menu
@@ -34,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.NavigationItem
+import com.example.doantotnghiep.data.local.ScreenRoute
 import com.example.doantotnghiep.ui.dashboard.NotificationDiaLog
 import com.example.doantotnghiep.ui.theme.HybridBadgeBlue
 import com.example.doantotnghiep.ui.theme.StatusDanger
@@ -97,7 +98,13 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
 
             }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SurfaceLight)
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = SurfaceLight,
+            scrolledContainerColor = Color.Unspecified,
+            navigationIconContentColor = Color.Unspecified,
+            titleContentColor = Color.Unspecified,
+            actionIconContentColor = Color.Unspecified
+        )
     )
 
     if(showDialog) {
@@ -116,22 +123,22 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
 
 
 @Composable
-fun FloodGuardBottomBar(currentRoute: String, onNavigate: (String) -> Unit) {
+fun FloodGuardBottomBar(currentRoute: ScreenRoute, onNavigate: (ScreenRoute) -> Unit) {
     NavigationBar(
         containerColor = SurfaceLight,
         tonalElevation = 8.dp
     ) {
         val items = listOf(
-            NavigationItem(stringResource(R.string.bar_home), Icons.Default.Home, stringResource(R.string.bar_home)),
-            NavigationItem(stringResource(R.string.bar_map), Icons.Default.Map, stringResource(R.string.bar_map)),
-            NavigationItem(stringResource(R.string.bar_analytic), Icons.Default.Analytics, stringResource(R.string.bar_analytic))
+            NavigationItem(stringResource(R.string.bar_home), Icons.Default.Home, ScreenRoute.HOME),
+            NavigationItem(stringResource(R.string.bar_map), Icons.Default.Map, ScreenRoute.MAP),
+            //NavigationItem(stringResource(R.string.bar_analytic), Icons.Default.Analytics, ScreenRoute.)
         )
 
         items.forEach {
             val isSelected = currentRoute == it.route
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { onNavigate(it.route ?: "") },
+                onClick = { onNavigate(it.route ?: ScreenRoute.HOME) },
                 label = { Text(it.title ?: "", fontSize = 10.sp)},
                 icon = {
                     Icon(
