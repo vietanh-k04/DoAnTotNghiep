@@ -55,5 +55,27 @@ val BrightGray = Color(0xFFE5E7EB)
 
 val VividBlue = Color(0xFF007AFF)
 
+val BgLight = Color(0xFFF5F7FA)
+
+val CardWhite = Color(0xFFFFFFFF)
+
+val TextDark = Color(0xFF1E293B)
+
+val TextGray = Color(0xFF64748B)
+
+val BlueRecorded = Color(0xFF0EA5E9)
+
+val OrangePredicted = Color(0xFFF59E0B)
+
+val RedDanger = Color(0xFFEF4444)
+
+val CoolGray = Color(0xFFE2E8F0)
+
+val SoftBgTop = Color(0xFF7A9CAE)
+val SoftBgBottom = Color(0xFF8BA596)
+val GlassBg = Color(0x33FFFFFF)
+val TextWhite = Color.White
+val TextDim = Color.White.copy(alpha = 0.7f)
+
 
 

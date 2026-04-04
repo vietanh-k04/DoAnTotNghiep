@@ -1,28 +1,37 @@
 package com.example.doantotnghiep.ui.bar
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.rounded.Analytics
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -33,23 +42,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.NavigationItem
-import com.example.doantotnghiep.data.local.ScreenRoute
+import com.example.doantotnghiep.data.local.enum.ScreenRoute
 import com.example.doantotnghiep.ui.dashboard.NotificationDiaLog
-import com.example.doantotnghiep.ui.theme.HybridBadgeBlue
+import com.example.doantotnghiep.ui.theme.SoftBgTop
 import com.example.doantotnghiep.ui.theme.StatusDanger
-import com.example.doantotnghiep.ui.theme.SurfaceLight
-import com.example.doantotnghiep.ui.theme.TextPrimaryLight
-import com.example.doantotnghiep.ui.theme.TextSecondaryLight
-import com.example.doantotnghiep.ui.theme.TextSelected
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,52 +68,75 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
 
     var showDialog by remember { mutableStateOf(false) }
 
-    CenterAlignedTopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_water_drop),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    color = TextPrimaryLight,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = {}) {
-                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.bar_menu))
-            }
-
-        },
-        actions = {
-            Box(Modifier.padding(end = 8.dp)) {
-                IconButton(onClick = {showDialog = true}) {
-                    Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.bar_notification))
+    Column(modifier = Modifier.background(SoftBgTop)) {
+        Spacer(modifier = Modifier.height(24.dp))
+        CenterAlignedTopAppBar(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.4f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_water_drop),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text(
+                            text = stringResource(R.string.app_name).uppercase(),
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "HỆ THỐNG CẢNH BÁO LŨ",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 10.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
-                if(unreadCount > 0) {
-                    Surface(
-                        color = StatusDanger,
-                        shape = CircleShape,
-                        modifier = Modifier.size(8.dp).align(Alignment.TopEnd).offset(x = (-8).dp, y = 8.dp).border(1.5.dp, SurfaceLight, CircleShape)
-                    ) { }
+            },
+            navigationIcon = {
+                IconButton(onClick = {}) {
+                    Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.bar_menu), tint = Color.White)
                 }
-
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = SurfaceLight,
-            scrolledContainerColor = Color.Unspecified,
-            navigationIconContentColor = Color.Unspecified,
-            titleContentColor = Color.Unspecified,
-            actionIconContentColor = Color.Unspecified
+            },
+            actions = {
+                Box(Modifier.padding(end = 8.dp)) {
+                    IconButton(onClick = {showDialog = true}) {
+                        Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.bar_notification), tint = Color.White)
+                    }
+                    if(unreadCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-10).dp, y = 12.dp)
+                            .background(StatusDanger, CircleShape)
+                            .border(1.5.dp, SoftBgTop, CircleShape)
+                        )
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
+                navigationIconContentColor = Color.White,
+                titleContentColor = Color.White,
+                actionIconContentColor = Color.White
+            )
         )
-    )
+    }
 
     if(showDialog) {
         NotificationDiaLog(
@@ -123,33 +154,88 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
 
 
 @Composable
-fun FloodGuardBottomBar(currentRoute: ScreenRoute, onNavigate: (ScreenRoute) -> Unit) {
-    NavigationBar(
-        containerColor = SurfaceLight,
-        tonalElevation = 8.dp
-    ) {
-        val items = listOf(
-            NavigationItem(stringResource(R.string.bar_home), Icons.Default.Home, ScreenRoute.HOME),
-            NavigationItem(stringResource(R.string.bar_map), Icons.Default.Map, ScreenRoute.MAP),
-            //NavigationItem(stringResource(R.string.bar_analytic), Icons.Default.Analytics, ScreenRoute.)
-        )
+fun FloodGuardBottomBar(
+    currentRoute: ScreenRoute,
+    onNavigate: (ScreenRoute) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val items = listOf(
+        NavigationItem(stringResource(R.string.bar_home), Icons.Rounded.Home, ScreenRoute.HOME),
+        NavigationItem(stringResource(R.string.bar_map), Icons.Rounded.Map, ScreenRoute.MAP),
+        NavigationItem(stringResource(R.string.bar_analytic), Icons.Rounded.Analytics, ScreenRoute.ANALYTIC),
+        NavigationItem(stringResource(R.string.bar_history), Icons.Rounded.History, ScreenRoute.HISTORY)
+    )
 
-        items.forEach {
-            val isSelected = currentRoute == it.route
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { onNavigate(it.route ?: ScreenRoute.HOME) },
-                label = { Text(it.title ?: "", fontSize = 10.sp)},
-                icon = {
-                    Icon(
-                        imageVector = it.icon ?: Icons.Default.Refresh,
-                        contentDescription = it.title,
-                        tint = if (isSelected) TextSelected else TextSecondaryLight
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(indicatorColor = HybridBadgeBlue)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+            .shadow(
+                elevation = 24.dp,
+                shape = RoundedCornerShape(32.dp),
+                spotColor = Color(0xFF0EA5E9).copy(alpha = 0.5f),
+                ambientColor = Color(0xFF0EA5E9).copy(alpha = 0.3f)
             )
+            .clip(RoundedCornerShape(32.dp))
+            .background(Color(0xFF1E293B))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEach { item ->
+                val isSelected = currentRoute == item.route
+                val animatedBgColor by animateColorAsState(
+                    targetValue = if (isSelected) Color(0xFF0EA5E9) else Color.Transparent,
+                    animationSpec = tween(300)
+                )
+                val animatedContentColor by animateColorAsState(
+                    targetValue = if (isSelected) Color.White else Color(0xFF94A3B8),
+                    animationSpec = tween(300)
+                )
+                
+                val interactionSource = remember { MutableInteractionSource() }
+
+                Box(
+                    modifier = Modifier
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(animatedBgColor)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) { onNavigate(item.route ?: ScreenRoute.HOME) }
+                        .padding(horizontal = if(isSelected) 14.dp else 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = item.icon ?: Icons.Default.Refresh,
+                            contentDescription = item.title,
+                            tint = animatedContentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        
+                        AnimatedVisibility(visible = isSelected) {
+                            Text(
+                                text = item.title ?: "",
+                                color = animatedContentColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(start = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
-

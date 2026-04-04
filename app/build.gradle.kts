@@ -94,4 +94,6 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location.v2110)
+
+    implementation(libs.lottie.compose)
 }

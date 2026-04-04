@@ -1,5 +1,7 @@
 package com.example.doantotnghiep.data.local
 
+import com.example.doantotnghiep.data.local.enum.Status
+import com.example.doantotnghiep.data.local.enum.Trend
 import com.example.doantotnghiep.data.remote.*
 
 data class StationMapUiModel (

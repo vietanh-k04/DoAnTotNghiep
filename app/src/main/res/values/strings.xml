@@ -28,6 +28,7 @@
     <string name="bar_home">Màn hình chính</string>
     <string name="bar_map">Bản đồ</string>
     <string name="bar_analytic">Phân tích</string>
+    <string name="bar_history">Lịch sử</string>
     <string name="status_safe">Safe</string>
     <string name="status_warning">Warning</string>
     <string name="status_danger">Danger</string>
@@ -63,13 +64,13 @@
     <string name="map_max_range">%s cm</string>
     <string name="map_warning_station">Ngưỡng cảnh báo</string>
     <string name="map_danger_station">Ngưỡng nguy hiểm</string>
-    <string name="map_location_on">Tọa độ thiết bị (Location)</string>
+    <string name="map_location_on">Tọa độ thiết bị (Location)</string>
     <string name="map_location_on_value">%1$.4f, %2$.4f</string>
     <string name="cancel">Hủy</string>
     <string name="map_save">Lưu thay đổi</string>
     <string name="map_station_name">Tên trạm</string>
     <string name="map_is_fetching_location">Đang yêu cầu thiết bị quét vị trí …</string>
-    <string name="map_fetch_location">Tọa độ thiết bị (Bấm để cập nhật)</string>
+    <string name="map_fetch_location">Tọa độ trạm (Bấm để cập nhật)</string>
     <string name="map_is_fetching_offset">Đang yêu cầu cảm biến đo…</string>
     <string name="map_fetch_offset">Khoảng cách tới đáy (Hiệu chuẩn)</string>
     <string name="map_security_auth">Xác thực bảo mật</string>
@@ -79,4 +80,5 @@
     <string name="confirm">Xác nhận</string>
     <string name="hide_password">Ẩn mật khẩu</string>
     <string name="show_password">Hiện mật khẩu</string>
+    <string name="water_forecast">Dự báo mực nước</string>
 </resources>

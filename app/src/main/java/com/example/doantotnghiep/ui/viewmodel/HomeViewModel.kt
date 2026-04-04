@@ -4,23 +4,26 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.local.HomeUiState
+import com.example.doantotnghiep.RADIUS_LIMIT
 import com.example.doantotnghiep.data.local.StationMapUiModel
+import com.example.doantotnghiep.data.local.state.HomeUiState
 import com.example.doantotnghiep.data.remote.NotificationLog
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.notification.NotificationHelper
 import com.example.doantotnghiep.utils.LocationUtils
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -42,7 +45,7 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
     private var percent = 0f
 
-    private val RADIUS_LIMIT = 3000f
+    private var observeJob: Job? = null
 
     init {
         observerStationData("station_01")
@@ -68,20 +71,26 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
         }
 
         if(closetStation != null) {
+            _uiState.update { currentState ->
+                currentState.copy(isLocal = true)
+            }
             observerStationData(closetStation.stationConfig.id ?: "")
         } else {
             _uiState.update { currentState ->
                 currentState.copy(isLocal = false)
             }
-
-            fetchWeatherDataFromApi(userLat, userLng)
         }
     }
 
     private fun observerStationData(stationId: String) {
-        viewModelScope.launch {
-            val config = repository.getStationConfig(stationId)
-            repository.getRealtimeDatabase(stationId).collect { sensorData ->
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch {
+            combine(
+                repository.observeStationConfig(stationId),
+                repository.getRealtimeDatabase(stationId)
+            ) { config, sensorData ->
+                Pair(config, sensorData)
+            }.collect { (config, sensorData) ->
                 val currentLevel = calculateWaterLevel(sensorData, config)
 
                 val status = determineStatus(currentLevel, config)
@@ -98,15 +107,11 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
         }
     }
 
-    private fun fetchWeatherDataFromApi(lat: Double, lng: Double) {
-
-    }
-
     private fun calculateWaterLevel(data: SensorData?, config: StationConfig?) : Double {
         val offset = config?.calibrationOffset ?: 0
         val waterLevel =  (offset - (data?.distanceRaw ?: 0)).toDouble()
         val waterLevelPos = if(waterLevel < 0) 0.0 else waterLevel
-        percent = waterLevelPos.toFloat() / offset.toFloat()
+        percent = if (offset > 0) waterLevelPos.toFloat() / offset.toFloat() else 0f
         return waterLevelPos
     }
 
@@ -115,8 +120,8 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
         val danger = config?.dangerThreshold ?: 0.0
 
         return when {
-            level > danger -> R.string.status_danger
-            level > warning -> R.string.status_warning
+            level >= danger -> R.string.status_danger
+            level >= warning -> R.string.status_warning
             else -> R.string.status_safe
         }
     }

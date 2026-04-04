@@ -8,7 +8,6 @@ import com.example.doantotnghiep.utils.toSha256
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +41,20 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
         }
     }
 
+    fun observeStationConfig(stationId: String?): Flow<StationConfig?> = callbackFlow {
+        val ref = dbRef.child("stations").child(stationId ?: "").child("config")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(p0: DataSnapshot) {
+                val config = p0.getValue(StationConfig::class.java)
+                trySend(config)
+            }
+
+            override fun onCancelled(p0: DatabaseError) { }
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
     suspend fun getStationLogs(stationId: String?) : StationLogs? {
         return try {
             val snapshot = dbRef.child("stations").child(stationId ?: "").child("logs").get().await()
@@ -67,6 +80,27 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
         return try {
             val hashedKey = rawKey?.toSha256()
             dbRef.child("stations").child(stationId ?: "").child("config").child("deviceKey").setValue(hashedKey).await()
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun updateStationConfig(
+        stationId: String,
+        name: String,
+        offset: Int,
+        warningThreshold: Double,
+        dangerThreshold: Double
+    ): Boolean {
+        return try {
+            val updates = mapOf<String, Any>(
+                "name" to name,
+                "calibrationOffset" to offset,
+                "warningThreshold" to warningThreshold,
+                "dangerThreshold" to dangerThreshold
+            )
+            dbRef.child("stations").child(stationId).child("config").updateChildren(updates).await()
             true
         } catch (_: Exception) {
             false

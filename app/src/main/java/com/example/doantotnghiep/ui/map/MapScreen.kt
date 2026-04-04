@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,6 +28,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -48,10 +50,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.StationMapUiModel
-import com.example.doantotnghiep.ui.theme.*
-import com.example.doantotnghiep.utils.*
+import com.example.doantotnghiep.ui.dialog.PasswordDialog
+import com.example.doantotnghiep.ui.dialog.StationSettingDialog
+import com.example.doantotnghiep.ui.theme.DarkGunmetal
+import com.example.doantotnghiep.ui.theme.EerieBlack
+import com.example.doantotnghiep.ui.theme.NavyGray
+import com.example.doantotnghiep.ui.theme.OffWhite
+import com.example.doantotnghiep.ui.theme.SoftBgBottom
+import com.example.doantotnghiep.ui.theme.SoftBgTop
+import com.example.doantotnghiep.utils.statusColor
+import com.example.doantotnghiep.utils.statusText
+import com.example.doantotnghiep.utils.trendColor
+import com.example.doantotnghiep.utils.trendText
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -70,6 +83,7 @@ fun MapScreen(
     stations: List<StationMapUiModel>,
     isLocationGranted: Boolean,
     userLocation: LatLng?,
+    onUpdateStationConfig: (String, String, Int, Double, Double, (Boolean) -> Unit) -> Unit = { _, _, _, _, _, _ -> }
 ) {
     var selectedStation by remember { mutableStateOf<StationMapUiModel?>(null) }
 
@@ -78,10 +92,6 @@ fun MapScreen(
     var showSettingsSheet by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    val passwordSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    val settingsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val defaultLocation = LatLng(21.0285, 105.8246)
 
@@ -100,14 +110,23 @@ fun MapScreen(
         }
     }
 
+    LaunchedEffect(stations) {
+        selectedStation?.let { currentStation ->
+            val freshStation = stations.find { it.stationConfig.id == currentStation.stationConfig.id }
+            if (freshStation != null) {
+                selectedStation = freshStation
+            }
+        }
+    }
+
     BottomSheetScaffold(
         scaffoldState = rememberBottomSheetScaffoldState(),
         sheetContentColor = OffWhite,
-        sheetPeekHeight = 120.dp,
+        sheetPeekHeight = 250.dp,
         sheetDragHandle = { BottomSheetDefaults.DragHandle() },
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetContent = {
-            Box(modifier = Modifier.fillMaxHeight(0.4f)) {
+            Box(modifier = Modifier.fillMaxHeight(0.5f)) {
                 StationListContent(
                     stations = stations,
                     onStationSingleClicked = { station ->
@@ -154,50 +173,82 @@ fun MapScreen(
         }
     }
 
-    if(selectedStation != null) {
+    if(selectedStation != null && !showPasswordPrompt && !showSettingsSheet) {
         ModalBottomSheet(
             onDismissRequest = {selectedStation = null},
             sheetState = sheetState,
-            containerColor = Color.White
+            containerColor = Color.Transparent,
+            dragHandle = null
         ) {
-            StationDetailContent(station = selectedStation!!, onSettingClick = {
-                showPasswordPrompt = true
-            })
-        }
-    }
-
-    if(showPasswordPrompt && selectedStation != null) {
-        ModalBottomSheet(
-            onDismissRequest = { showPasswordPrompt = false },
-            sheetState = passwordSheetState,
-            containerColor = Color.White
-        ) {
-            PasswordPromptContent(
-                onDismiss = {showPasswordPrompt = false},
-                correctHash = selectedStation!!.stationConfig.deviceKey ?: "",
-                onVerifySuccess = {
-                    showPasswordPrompt = false
-                    showSettingsSheet = true
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    )
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(32.dp)
+                            .height(4.dp)
+                            .background(Color.White.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                    )
+                    StationDetailContent(station = selectedStation!!, onSettingClick = {
+                        showPasswordPrompt = true
+                    })
                 }
-            )
+            }
         }
     }
 
-    if(showSettingsSheet && selectedStation != null) {
-        ModalBottomSheet(
-            onDismissRequest = {showSettingsSheet = false},
-            sheetState = settingsSheetState,
-            containerColor = Color.White
-        ) {
-            StationSettingContent(
-                station = selectedStation!!,
-                onDismiss = {showSettingsSheet = false},
-                onSave = { newName, newOffset, newWarning, newDanger ->
+    if (showPasswordPrompt && selectedStation != null) {
+        Dialog(onDismissRequest = { showPasswordPrompt = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Transparent
+            ) {
+                Box(modifier = Modifier.background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))) {
+                    PasswordDialog(
+                        onDismiss = { showPasswordPrompt = false },
+                        correctHash = selectedStation!!.stationConfig.deviceKey ?: "",
+                        onVerifySuccess = {
+                            showPasswordPrompt = false
+                            showSettingsSheet = true
+                        }
+                    )
+                }
+            }
+        }
+    }
 
-                },
-                onRequestLocationUpdate = {},
-                onRequestOffsetUpdate = {}
-            )
+    if (showSettingsSheet && selectedStation != null) {
+        Dialog(onDismissRequest = { showSettingsSheet = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Transparent
+            ) {
+                Box(modifier = Modifier.background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))) {
+                    StationSettingDialog(
+                        station = selectedStation!!,
+                        onDismiss = { showSettingsSheet = false },
+                        onSave = { newName, newOffset, newWarning, newDanger, onComplete ->
+                            onUpdateStationConfig(
+                                selectedStation!!.stationConfig.id ?: "",
+                                newName,
+                                newOffset.toInt(),
+                                newWarning.toDouble(),
+                                newDanger.toDouble(),
+                                onComplete
+                            )
+                        },
+                        onRequestLocationUpdate = {},
+                        onRequestOffsetUpdate = {}
+                    )
+                }
+            }
         }
     }
 }
@@ -212,6 +263,7 @@ fun StationListContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
+        contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {

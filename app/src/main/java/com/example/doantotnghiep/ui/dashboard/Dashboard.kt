@@ -21,18 +21,15 @@ import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -49,11 +46,12 @@ import com.example.doantotnghiep.utils.*
 
 @Composable
 fun WaveCard(data: WaveCardUiModel) {
-    Card(
-        modifier = Modifier.fillMaxSize().height(350.dp).padding(16.dp).shadow(8.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(contentColor = SurfaceLight),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(350.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(GlassBg)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
@@ -75,16 +73,17 @@ fun WaveCard(data: WaveCardUiModel) {
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.dashboard_current_water_level), color = OffWhite, fontSize = 24.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.dashboard_current_water_level), color = TextDim, fontSize = 24.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.padding(bottom = 10.dp))
-                Text(stringResource(R.string.dashboard_value_current_water_level, data.waterLevel), color = OffWhite, fontSize = 64.sp, fontWeight = FontWeight.ExtraBold)
+                Text(stringResource(R.string.dashboard_value_current_water_level, data.waterLevel), color = TextWhite, fontSize = 64.sp, fontWeight = FontWeight.ExtraBold)
 
-                Surface(
-                    color = StatusSuccess.copy(0.4f),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.padding(top = 8.dp)
+                Box(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(GlassBg)
                 ) {
-                    Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(data.statusIcon, contentDescription = null, tint = data.statusColor, modifier = Modifier.size(16.dp))
                         Text(stringResource(R.string.dashboard_status, stringResource(data.status)), color = data.statusColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp), fontWeight = FontWeight.Bold)
                     }
@@ -93,15 +92,15 @@ fun WaveCard(data: WaveCardUiModel) {
 
             Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text(stringResource(R.string.dashboard_trend), style = MaterialTheme.typography.labelMedium, color = SurfaceLight, modifier = Modifier.padding(bottom = 5.dp))
-                    Text(stringResource(data.trend), style = MaterialTheme.typography.bodyLarge, color = SurfaceLight, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_trend), style = MaterialTheme.typography.labelMedium, color = TextDim, modifier = Modifier.padding(bottom = 5.dp))
+                    Text(stringResource(data.trend), style = MaterialTheme.typography.bodyLarge, color = TextWhite, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(Modifier.weight(1f))
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(stringResource(R.string.dashboard_last_updated), style = MaterialTheme.typography.labelMedium, color = SurfaceLight, modifier = Modifier.padding(bottom = 5.dp))
-                    Text(data.lastUpdated, style = MaterialTheme.typography.bodyLarge, color = SurfaceLight, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_last_updated), style = MaterialTheme.typography.labelMedium, color = TextDim, modifier = Modifier.padding(bottom = 5.dp))
+                    Text(data.lastUpdated, style = MaterialTheme.typography.bodyLarge, color = TextWhite, fontWeight = FontWeight.Bold)
                 }
 
             }
@@ -111,30 +110,28 @@ fun WaveCard(data: WaveCardUiModel) {
 
 @Composable
 fun HybridBadge(isLocal: Boolean) {
-    val backgroundColor = if (isLocal) LocalBackground else AreaBackground
-    val contentColor = if (isLocal) StatusSuccess else AreaContent
     val text = if (isLocal) stringResource(R.string.dashboard_local) else stringResource(R.string.dashboard_area)
     val icon = if (isLocal) Icons.Default.GpsFixed else Icons.Default.Public
 
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(GlassBg)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = contentColor,
+                tint = TextWhite,
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
-                color = contentColor,
+                color = TextWhite,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp
@@ -145,30 +142,31 @@ fun HybridBadge(isLocal: Boolean) {
 
 @Composable
 fun EnvironmentMetric(icon: ImageVector, iconTint: Color, label: String, value: String, unit: String) {
-    Card(
-        modifier = Modifier.padding(8.dp).fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(GlassBg)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Surface(
-                color = iconTint.copy(alpha = 0.15f),
-                shape = CircleShape,
-                modifier = Modifier.size(40.dp)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(GlassBg),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(22.dp)
+                )
             }
 
             Spacer(Modifier.height(8.dp))
-            Text(value + unit, color = TextPrimaryLight, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(label, color = TextSecondaryLight, fontSize = 12.sp)
+            Text(value + unit, color = TextWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = TextDim, fontSize = 12.sp)
         }
     }
 }
@@ -179,7 +177,7 @@ fun EnvironmentSection(sensorData: SensorData?) {
 
     val rainInfor = getRainStatus(rainRaw)
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -187,17 +185,17 @@ fun EnvironmentSection(sensorData: SensorData?) {
         ) {
             Text(
                 stringResource(R.string.dashboard_environment),
-                color = TextPrimaryLight,
+                color = TextWhite,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
             TextButton(onClick = { }) {
-                Text(stringResource(R.string.dashboard_history), color = TextSelected)
+                Text(stringResource(R.string.dashboard_history), color = TextWhite)
             }
         }
-
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+        Spacer(modifier = Modifier.height(16.dp))
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(modifier = Modifier.weight(1f)) {
                     EnvironmentMetric(
                         icon = Icons.Default.Thermostat,
@@ -218,7 +216,7 @@ fun EnvironmentSection(sensorData: SensorData?) {
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(modifier = Modifier.weight(1f)) {
                     EnvironmentMetric(
                         icon = rainInfor.first,
@@ -241,5 +239,3 @@ fun EnvironmentSection(sensorData: SensorData?) {
         }
     }
 }
-
-
