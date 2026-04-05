@@ -15,15 +15,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.doantotnghiep.data.local.enum.ScreenRoute
 import com.example.doantotnghiep.ui.bar.FloodGuardBottomBar
 import com.example.doantotnghiep.ui.bar.FloodGuardTopBar
-import com.example.doantotnghiep.ui.screen.AnalyticScreen
 import com.example.doantotnghiep.ui.screen.HistoryScreen
 import com.example.doantotnghiep.ui.screen.HomeScreen
 import com.example.doantotnghiep.ui.screen.MapScreenWrapper
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.theme.DoAnTotNghiepTheme
+import com.example.doantotnghiep.ui.viewmodel.HistoryViewModel
+import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
+import com.example.doantotnghiep.ui.viewmodel.MapViewModel
+import com.example.doantotnghiep.ui.viewmodel.WeatherViewModel
 import com.example.doantotnghiep.utils.rememberLocationState
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
@@ -47,6 +51,11 @@ fun MainLayout(modifier: Modifier = Modifier) {
 
     val locationState = rememberLocationState()
 
+    val historyViewModel: HistoryViewModel = hiltViewModel()
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val mapViewModel: MapViewModel = hiltViewModel()
+    val weatherViewModel: WeatherViewModel = hiltViewModel()
+
     Scaffold(
         modifier = modifier,
         topBar = { FloodGuardTopBar() },
@@ -55,10 +64,19 @@ fun MainLayout(modifier: Modifier = Modifier) {
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             Column(modifier = Modifier.fillMaxSize()) {
                 when(currentScreen) {
-                    ScreenRoute.HOME -> HomeScreen(userLocation = locationState.location)
-                    ScreenRoute.MAP -> MapScreenWrapper(locationState = locationState)
-                    ScreenRoute.ANALYTIC -> AnalyticScreen()
-                    ScreenRoute.HISTORY -> HistoryScreen()
+                    ScreenRoute.HOME -> HomeScreen(
+                        userLocation = locationState.location,
+                        onNavigate = { currentScreen = it },
+                        homeViewModel = homeViewModel,
+                        mapViewModel = mapViewModel,
+                        weatherViewModel = weatherViewModel
+                    )
+                    ScreenRoute.MAP -> MapScreenWrapper(
+                        locationState = locationState,
+                        viewModel = mapViewModel,
+                    )
+                    ScreenRoute.ANALYTIC -> TestFloodModelScreen()
+                    ScreenRoute.HISTORY -> HistoryScreen(viewModel = historyViewModel)
                 }
             }
             

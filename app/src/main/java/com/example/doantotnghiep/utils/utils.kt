@@ -167,3 +167,21 @@ fun rememberLocationState(): LocationState {
         location = userLocation
     )
 }
+
+enum class WaterLevelState {
+    VALID,
+    ERROR_NEGATIVE,
+    ERROR_OBSTRUCTION
+}
+
+object WaterLevelValidator {
+    fun validate(currentLevel: Double, lastValidLevel: Double): WaterLevelState {
+        if (currentLevel < -3) return WaterLevelState.ERROR_NEGATIVE
+        if (lastValidLevel >= 0.0 && (currentLevel - lastValidLevel) >= 15.0) return WaterLevelState.ERROR_OBSTRUCTION
+        return WaterLevelState.VALID
+    }
+
+    fun isStabilized(currentLevel: Double, lastValidLevel: Double): Boolean {
+        return lastValidLevel >= 0.0 && kotlin.math.abs(currentLevel - lastValidLevel) < 5.0
+    }
+}

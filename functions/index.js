@@ -14,6 +14,28 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
         if (!config) return null;
 
         const currentLevel = (config.calibrationOffset || 0) - (data.distanceRaw || 0);
+        const alertStateRef = admin.database().ref(`/stations/${stationId}/alertState`);
+        const alertStateSnap = await alertStateRef.once('value');
+        const alertState = alertStateSnap.val() || {};
+
+        const lastWaterLevel = alertState.lastWaterLevel !== undefined ? alertState.lastWaterLevel : -1.0;
+
+        let isInvalid = false;
+
+        if (currentLevel < 0) {
+            isInvalid = true;
+        } else if (lastWaterLevel >= 0 && (currentLevel - lastWaterLevel) >= 15.0) {
+            isInvalid = true;
+        } else if (lastWaterLevel >= 0 && Math.abs(currentLevel - lastWaterLevel) < 5.0) {
+            // Trở lại ổn định
+            isInvalid = false;
+        }
+
+        if (isInvalid) {
+            console.log(`Bỏ qua dữ liệu nhiễu trạm ${stationId}. Mực nước đo được: ${currentLevel}, cũ: ${lastWaterLevel}`);
+            return null;
+        }
+
         const danger = config.dangerThreshold || 0.0;
         const warning = config.warningThreshold || 0.0;
 
@@ -33,13 +55,13 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
             title = "CẢNH BÁO NƯỚC DÂNG";
             message = `Trạm ${config.name} vượt mức CẢNH BÁO. Mực nước: ${currentLevel}cm`;
         } else {
-            await admin.database().ref(`/stations/${stationId}/alertState`).remove();
+            await alertStateRef.update({
+                lastWaterLevel: currentLevel
+            });
+            await alertStateRef.child('lastStatus').remove();
+            await alertStateRef.child('lastAlertTime').remove();
             return null;
         }
-
-        const alertStateRef = admin.database().ref(`/stations/${stationId}/alertState`);
-        const alertStateSnap = await alertStateRef.once('value');
-        const alertState = alertStateSnap.val() || {};
 
         const lastStatus = alertState.lastStatus || "SAFE";
         const lastAlertTime = alertState.lastAlertTime || 0;
@@ -52,11 +74,14 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
 
         if (!isStatusChanged && !isCooldownPassed) {
             console.log(`Bỏ qua gửi trạm ${stationId}: Đang ở trạng thái ${currentStatus}, chờ hết ${COOLDOWN_MS/60000} phút.`);
+            await alertStateRef.update({ lastWaterLevel: currentLevel });
             return null;
         }
-        await alertStateRef.set({
+
+        await alertStateRef.update({
             lastStatus: currentStatus,
-            lastAlertTime: currentTime
+            lastAlertTime: currentTime,
+            lastWaterLevel: currentLevel
         });
 
         const logRef = admin.database().ref('/notification_logs').push();

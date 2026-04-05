@@ -63,19 +63,15 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                             if (isFirstRead) {
                                 isFirstRead = false
                                 lastTimestamp = currentTimestamp
-                                // Bỏ qua giá trị đầu tiên vì nó có thể là data cũ (cache)
                                 return@collect
                             }
 
-                            // Chỉ bỏ qua nếu CẢ timestamp không đổi VÀ config không đổi
                             if (currentTimestamp == lastTimestamp && !configChanged) {
                                 return@collect
                             }
 
-                            // Cập nhật lại thời gian lastTimestamp nếu có dữ liệu IoT mới
                             if (currentTimestamp != lastTimestamp) {
                                 lastTimestamp = currentTimestamp
-                                // Reset timeout job vì trạm vẫn đang sống
                                 timeoutJob?.cancel()
                                 timeoutJob = launch {
                                     delay(15000)
@@ -89,7 +85,36 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                             }
 
                             val offset = currentConfig.calibrationOffset ?: 0
-                            val level = (offset - (sensorData.distanceRaw ?: 0)).toDouble()
+                            val rawWaterLevel = (offset - (sensorData.distanceRaw ?: 0)).toDouble()
+
+                            val previousData = _stationsMap.value[stationId]?.sensorData
+                            val previousLevel = previousData?.distanceRaw?.toDouble() ?: -1.0
+
+                            val validationState = com.example.doantotnghiep.utils.WaterLevelValidator.validate(rawWaterLevel, previousLevel)
+                            val isInvalid = validationState != com.example.doantotnghiep.utils.WaterLevelState.VALID
+
+                            if (isInvalid) {
+                                // Nếu là dữ liệu nhiễu, chỉ update các chỉ số môi trường (nếu trạm đang hiển thị)
+                                _stationsMap.update { currentMap ->
+                                    val newMap = currentMap.toMutableMap()
+                                    val existingUiModel = newMap[stationId]
+                                    if (existingUiModel != null) {
+                                        newMap[stationId] = existingUiModel.copy(
+                                            sensorData = existingUiModel.sensorData.copy(
+                                                temp = sensorData.temp,
+                                                humid = sensorData.humid,
+                                                rainVal = sensorData.rainVal,
+                                                timestamp = sensorData.timestamp
+                                            )
+                                        )
+                                    }
+                                    newMap
+                                }
+                                _stationList.value = _stationsMap.value.values.toList()
+                                return@collect
+                            }
+
+                            val level = if(rawWaterLevel < 0) 0 else rawWaterLevel.toInt()
 
                             val warning = currentConfig.warningThreshold ?: 0.0
                             val danger = currentConfig.dangerThreshold ?: 0.0
@@ -100,7 +125,7 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                             }
 
                             val uiModel = StationMapUiModel(
-                                sensorData = SensorData(sensorData.timestamp, if(level < 0) 0 else level.toInt(), sensorData.temp, sensorData.humid, sensorData.rainVal),
+                                sensorData = SensorData(sensorData.timestamp, level, sensorData.temp, sensorData.humid, sensorData.rainVal),
                                 stationConfig = StationConfig(id = currentConfig.id, name = currentConfig.name, latitude = currentConfig.latitude, longitude = currentConfig.longitude, deviceKey = currentConfig.deviceKey, calibrationOffset = currentConfig.calibrationOffset, warningThreshold = currentConfig.warningThreshold, dangerThreshold = currentConfig.dangerThreshold),
                                 trendValue = Trend.STABLE,
                                 trendPoints = listOf(10f, 20f, 15f, 30f),
@@ -128,10 +153,12 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
         offset: Int,
         warningThreshold: Double,
         dangerThreshold: Double,
+        latitude: Double?,
+        longitude: Double?,
         onComplete: (Boolean) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val success = floodRepository.updateStationConfig(stationId, name, offset, warningThreshold, dangerThreshold)
+            val success = floodRepository.updateStationConfig(stationId, name, offset, warningThreshold, dangerThreshold, latitude, longitude)
             
             withContext(Dispatchers.Main) {
                 if (success) {
@@ -144,7 +171,9 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                                     name = name,
                                     calibrationOffset = offset,
                                     warningThreshold = warningThreshold,
-                                    dangerThreshold = dangerThreshold
+                                    dangerThreshold = dangerThreshold,
+                                    latitude = latitude ?: existing.stationConfig.latitude,
+                                    longitude = longitude ?: existing.stationConfig.longitude
                                 )
                             )
                         }
@@ -152,7 +181,6 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                     }
                     _stationList.value = _stationsMap.value.values.toList()
 
-                    // Bỏ gọi loadAllStation() ở đây để tránh làm mất config và timeout flow
                 }
 
                 onComplete(success)

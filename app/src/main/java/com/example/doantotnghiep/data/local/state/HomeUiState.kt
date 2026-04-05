@@ -16,4 +16,6 @@ data class HomeUiState(
     val isLocal: Boolean = true,
     val maxHeight: Double = 1.0,
     val waterPercent: Float = 0f,
+    val showRecalibratePopup: Boolean = false,
+    val showObstructionPopup: Boolean = false,
 )

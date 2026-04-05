@@ -305,7 +305,7 @@ fun DailyForecastSection(dailyForecast: List<DailyWeather>) {
 fun ActivityRunningSection(runningCondition: RunningCondition) {
     GlassCard {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Chạy", color = TextDim, fontSize = 14.sp)
+            Text("Chạy bộ", color = TextDim, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(

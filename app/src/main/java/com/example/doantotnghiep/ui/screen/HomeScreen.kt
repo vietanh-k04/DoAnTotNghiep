@@ -1,6 +1,7 @@
 package com.example.doantotnghiep.ui.screen
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -8,6 +9,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,16 +19,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -39,20 +38,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.StationMapUiModel
+import com.example.doantotnghiep.data.local.enum.ScreenRoute
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.ui.dashboard.EnvironmentSection
 import com.example.doantotnghiep.ui.dashboard.HybridBadge
 import com.example.doantotnghiep.ui.dashboard.WaveCard
 import com.example.doantotnghiep.ui.dialog.NoStationDialog
+import com.example.doantotnghiep.ui.dialog.TopToast
 import com.example.doantotnghiep.ui.theme.SoftBgBottom
 import com.example.doantotnghiep.ui.theme.SoftBgTop
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
@@ -60,13 +60,15 @@ import com.example.doantotnghiep.ui.viewmodel.MapViewModel
 import com.example.doantotnghiep.ui.viewmodel.WeatherViewModel
 import com.example.doantotnghiep.utils.toWaveCardUiModel
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
-    homeViewModel: HomeViewModel = hiltViewModel(),
-    mapViewModel: MapViewModel = hiltViewModel(),
-    weatherViewModel: WeatherViewModel = hiltViewModel(),
-    userLocation: LatLng? = null
+    homeViewModel: HomeViewModel,
+    mapViewModel: MapViewModel,
+    weatherViewModel: WeatherViewModel,
+    userLocation: LatLng? = null,
+    onNavigate: (ScreenRoute) -> Unit = {}
 ) {
     var isApiScreen by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -79,7 +81,6 @@ fun HomeScreen(
                 } else {
                     "Hanoi"
                 }
-                // Sẽ tự động skip nếu chưa qua 15 phút, nhờ logic mới trong WeatherViewModel
                 weatherViewModel.fetchWeather(query)
             }
         }
@@ -134,7 +135,8 @@ fun HomeScreen(
                     homeViewModel = homeViewModel,
                     mapViewModel = mapViewModel,
                     userLocation = userLocation,
-                    onSwitchToApi = { isApiScreen = true }
+                    onSwitchToApi = { isApiScreen = true },
+                    onNavigate = onNavigate
                 )
             }
         }
@@ -152,6 +154,59 @@ fun HomeScreen(
                 contentDescription = "Chuyển đổi màn hình"
             )
         }
+
+        val uiState by homeViewModel.uiState.collectAsState()
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AnimatedVisibility(
+                visible = uiState.showRecalibratePopup,
+                enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
+            ) {
+                LaunchedEffect(uiState.showRecalibratePopup) {
+                    if (uiState.showRecalibratePopup) {
+                        delay(5000)
+                        homeViewModel.dismissRecalibratePopup()
+                    }
+                }
+                TopToast(
+                    title = "Yêu cầu đo lại khoảng cách",
+                    message = "Khoảng cách đo được lớn hơn khoảng cách tới đáy (âm). Vui lòng hiệu chuẩn lại trạm.",
+                    iconRes = R.drawable.ic_water_drop,
+                    onClick = { homeViewModel.dismissRecalibratePopup() }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = uiState.showObstructionPopup,
+                enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
+            ) {
+                LaunchedEffect(uiState.showObstructionPopup) {
+                    if (uiState.showObstructionPopup) {
+                        delay(5000)
+                        homeViewModel.dismissObstructionPopup()
+                    }
+                }
+                TopToast(
+                    title = "Phát hiện vật cản",
+                    message = "Mực nước nhảy lên bất thường. Không thể do nước về, vui lòng kiểm tra vật cản dưới cảm biến.",
+                    iconRes = R.drawable.ic_water_drop,
+                    containerColor = Color(0xFFFFEBEE),
+                    borderColor = Color(0xFFF44336),
+                    iconContainerColor = Color(0xFFFFCDD2),
+                    iconColor = Color(0xFFE53935),
+                    titleColor = Color(0xFFB71C1C),
+                    messageColor = Color(0xFFC62828),
+                    onClick = { homeViewModel.dismissObstructionPopup() }
+                )
+            }
+        }
     }
 }
 
@@ -160,7 +215,8 @@ fun LocalHomeScreen(
     homeViewModel: HomeViewModel,
     mapViewModel: MapViewModel,
     userLocation: LatLng?,
-    onSwitchToApi: () -> Unit
+    onSwitchToApi: () -> Unit,
+    onNavigate: (ScreenRoute) -> Unit
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
     val stations by mapViewModel.stationList.collectAsState(initial = emptyList())
@@ -189,17 +245,26 @@ fun LocalHomeScreen(
         ) {
             HybridBadge(isLocal = uiState.isLocal)
 
-            WaveCard(data = uiState.toWaveCardUiModel())
+            AnimatedVisibility(
+                visible = uiState.isLocal,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { 50 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { 50 })
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    WaveCard(data = uiState.toWaveCardUiModel())
 
-            EnvironmentSection(
-                SensorData(
-                    null,
-                    null,
-                    uiState.temperature,
-                    uiState.humidity,
-                    uiState.rainRaw
-                )
-            )
+                    EnvironmentSection(
+                        sensorData = SensorData(
+                            null,
+                            null,
+                            uiState.temperature,
+                            uiState.humidity,
+                            uiState.rainRaw
+                        ),
+                        onHistoryClick = { onNavigate(ScreenRoute.HISTORY) }
+                    )
+                }
+            }
         }
 
         if (!uiState.isLocal && !hasShownDialog) {
@@ -219,6 +284,20 @@ fun StationScanningRadar(userLocation: LatLng?, stations: List<StationMapUiModel
     LaunchedEffect(userLocation, stations) {
         if (userLocation != null && stations.isNotEmpty()) {
             homeViewModel.scanAndSyncData(userLocation.latitude, userLocation.longitude, stations)
+        } else if (stations.isEmpty()) {
+            delay(2500)
+            if (homeViewModel.uiState.value.isLocal) {
+                homeViewModel.setLocalMode(false)
+            }
+        }
+    }
+
+    LaunchedEffect(userLocation) {
+        if (userLocation == null) {
+            delay(3000)
+            if (homeViewModel.uiState.value.isLocal) {
+                homeViewModel.setLocalMode(false)
+            }
         }
     }
 }

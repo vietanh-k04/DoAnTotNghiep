@@ -1,13 +1,13 @@
 package com.example.doantotnghiep.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -19,20 +19,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,17 +58,18 @@ fun NotificationDiaLog(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .heightIn(max = 650.dp)
+                .heightIn(max = 680.dp)
                 .clip(RoundedCornerShape(28.dp))
                 .background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))
+                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(28.dp))
         ) {
             Column(Modifier.padding(top = 8.dp)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -84,11 +80,16 @@ fun NotificationDiaLog(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
                     )
-                    TextButton(onClick = onMarkAllRead) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(onClick = onMarkAllRead)
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
                         Text(
                             stringResource(R.string.notification_mark_all_read),
                             fontSize = 13.sp,
-                            color = TextDim,
+                            color = TextWhite.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -96,27 +97,33 @@ fun NotificationDiaLog(
 
                 LazyColumn(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1f, fill = false)
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(logs) { log ->
                         NotificaionItem(log = log, onClick = { onItemClick(log) })
                     }
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
 
-                Button(
-                    onClick = onDismiss,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GlassBg)
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(GlassBg)
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         stringResource(R.string.notification_close),
                         color = TextWhite,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -127,83 +134,103 @@ fun NotificationDiaLog(
 
 @Composable
 fun NotificaionItem(log: NotificationLog, onClick: () -> Unit) {
-    val contentAlpha = if (log.isRead) 0.5f else 1f
     val statusColor = if (log.type == 2) RedDanger else OrangePredicted
     val statusText = if (log.type == 2) "DANGER" else "WARNING"
 
-    Card(
-        onClick = onClick,
+    val bgColor = if (log.isRead) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.2f)
+    val borderColor = if (log.isRead) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.4f)
+    
+    val titleColor = if (log.isRead) TextWhite.copy(alpha = 0.5f) else TextWhite
+    val titleWeight = if (log.isRead) FontWeight.Medium else FontWeight.Bold
+    
+    val messageColor = if (log.isRead) TextDim.copy(alpha = 0.5f) else TextWhite.copy(alpha = 0.8f)
+    val timeColor = if (log.isRead) TextDim.copy(alpha = 0.4f) else TextDim
+    
+    val statusAlpha = if (log.isRead) 0.5f else 1f
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(contentAlpha),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = GlassBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .width(4.dp)
-                    .background(statusColor)
+            .clip(RoundedCornerShape(20.dp))
+            .background(bgColor)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(20.dp)
             )
-
-            Column(
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .weight(1f)
+                    .size(40.dp)
+                    .background(statusColor.copy(alpha = 0.15f * statusAlpha), CircleShape)
+                    .border(1.dp, statusColor.copy(alpha = 0.3f * statusAlpha), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier
-                                .size(6.dp)
-                                .background(statusColor, CircleShape)
-                        )
+                Icon(
+                    imageVector = Icons.Default.Circle,
+                    contentDescription = null,
+                    tint = statusColor.copy(alpha = statusAlpha),
+                    modifier = Modifier.size(10.dp)
+                )
+            }
 
-                        Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(16.dp))
 
-                        Text(
-                            statusText,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = statusColor,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        formatTimeAgo(log.timestamp),
+                        text = statusText,
                         fontSize = 11.sp,
-                        color = TextDim
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor.copy(alpha = statusAlpha),
+                        letterSpacing = 0.5.sp
                     )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = formatTimeAgo(log.timestamp),
+                            fontSize = 11.sp,
+                            color = timeColor
+                        )
+                        if (!log.isRead) {
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(Color(0xFF0EA5E9), CircleShape)
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.height(8.dp))
+                
+                Spacer(Modifier.height(6.dp))
 
                 Text(
-                    log.title,
+                    text = log.title,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextWhite
+                    fontWeight = titleWeight,
+                    color = titleColor
                 )
+                
+                Spacer(Modifier.height(4.dp))
 
                 Text(
                     text = log.message,
                     fontSize = 13.sp,
-                    color = TextDim,
+                    color = messageColor,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 18.sp
                 )
             }
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = TextDim,
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .padding(end = 12.dp)
-                    .size(20.dp)
-            )
         }
     }
 }

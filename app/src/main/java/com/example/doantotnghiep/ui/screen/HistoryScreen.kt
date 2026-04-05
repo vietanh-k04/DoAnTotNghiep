@@ -20,9 +20,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingFlat
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -40,10 +42,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.doantotnghiep.data.local.enum.AlertLevel
-import com.example.doantotnghiep.data.remote.LogUiModel
+import com.example.doantotnghiep.data.local.state.LogUiModel
 import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.ui.theme.GlassBg
 import com.example.doantotnghiep.ui.theme.SoftBgBottom
@@ -55,7 +56,7 @@ import com.example.doantotnghiep.ui.viewmodel.HistoryViewModel
 private const val TAG = "HistoryScreen"
 
 @Composable
-fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
+fun HistoryScreen(viewModel: HistoryViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(
@@ -114,7 +115,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                     onTimeRangeSelected = { viewModel.selectTimeRange(it) }
                 )
 
-                AlertsHistorySection(state.logs)
+                AlertsHistorySection(state.logs, state.selectedStation)
             }
         }
     }
@@ -134,7 +135,7 @@ fun HistoryChartCard(
             .background(GlassBg)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            val timeRanges = listOf("1 Ngày", "3 Ngày", "7 Ngày")
+            val timeRanges = listOf("1 Giờ", "6 Giờ", "12 Giờ")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,10 +166,29 @@ fun HistoryChartCard(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            val latestVal = logs.firstOrNull()?.distanceRaw?.toInt()?.toString() ?: "--"
+            val stationHeight = selectedStation?.calibrationOffset?.toFloat() ?: 400f
+
+            val latestDistance = logs.firstOrNull()?.distanceRaw
+            val previousDistance = logs.getOrNull(1)?.distanceRaw
+
+            val latestWaterLevel = latestDistance?.let { (stationHeight - it).coerceAtLeast(0f).toInt() }
+            val previousWaterLevel = previousDistance?.let { (stationHeight - it).coerceAtLeast(0f).toInt() }
+
+            val (trendText, trendColor, trendIcon) = if (latestWaterLevel != null && previousWaterLevel != null) {
+                if (latestWaterLevel > previousWaterLevel) {
+                    Triple("Tăng", Color(0xFFEF4444), Icons.AutoMirrored.Rounded.TrendingUp)
+                } else if (latestWaterLevel < previousWaterLevel) {
+                    Triple("Giảm", Color(0xFF10B981), Icons.AutoMirrored.Rounded.TrendingDown)
+                } else {
+                    Triple("Ổn định", Color(0xFF0EA5E9), Icons.AutoMirrored.Rounded.TrendingFlat)
+                }
+            } else {
+                Triple("Latest", Color(0xFF10B981), Icons.AutoMirrored.Rounded.TrendingFlat)
+            }
+
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = "$latestVal cm",
+                    text = "${latestWaterLevel ?: "--"} cm",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = TextWhite
@@ -179,21 +199,21 @@ fun HistoryChartCard(
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
                     Icon(
-                        Icons.Rounded.TrendingUp,
+                        trendIcon,
                         contentDescription = null,
-                        tint = Color(0xFF10B981),
+                        tint = trendColor,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        "Latest",
-                        color = Color(0xFF10B981),
+                        trendText,
+                        color = trendColor,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
             Text(
-                "KHOẢNG CÁCH GẦN NHẤT ${selectedStation?.name?.let { "- $it" } ?: ""}",
+                "MỰC NƯỚC HIỆN TẠI ${selectedStation?.name?.let { "- $it" } ?: ""}",
                 color = TextDim,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
@@ -212,11 +232,13 @@ fun HistoryChartCard(
 
                     val defaultPoints = listOf(0.5f, 0.5f)
                     val points = if (logs.size >= 2) {
-                        val distances = logs.take(10).reversed().map { it.distanceRaw }
-                        val maxVal = distances.maxOrNull() ?: 1f
-                        val minVal = distances.minOrNull() ?: 0f
+                        val waterLevels = logs.take(10).reversed().map { log ->
+                             (stationHeight - log.distanceRaw).coerceAtLeast(0f)
+                        }
+                        val maxVal = waterLevels.maxOrNull() ?: 1f
+                        val minVal = waterLevels.minOrNull() ?: 0f
                         val range = if (maxVal == minVal) 1f else (maxVal - minVal)
-                        distances.map { ((it - minVal) / range).coerceIn(0.1f, 0.9f) }
+                        waterLevels.map { ((it - minVal) / range).coerceIn(0.1f, 0.9f) }
                     } else {
                         defaultPoints
                     }
@@ -274,7 +296,6 @@ fun HistoryChartCard(
                         style = Stroke(width = 8f, cap = StrokeCap.Round)
                     )
 
-                    // Đánh dấu điểm cao nhất trên biểu đồ
                     val maxPointIndex = points.indexOf(points.maxOrNull() ?: 0f)
                     val maxPointX = maxPointIndex * stepX
                     val maxPointY = height - (points[maxPointIndex] * height)
@@ -318,7 +339,7 @@ fun HistoryChartCard(
 }
 
 @Composable
-fun AlertsHistorySection(alerts: List<LogUiModel>) {
+fun AlertsHistorySection(alerts: List<LogUiModel>, selectedStation: StationConfig?) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -330,13 +351,6 @@ fun AlertsHistorySection(alerts: List<LogUiModel>) {
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextWhite
-            )
-            Text(
-                text = "Xem Tất Cả",
-                color = Color(0xFF0EA5E9),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { /* Mở màn hình full lịch sử */ }
             )
         }
 
@@ -350,8 +364,8 @@ fun AlertsHistorySection(alerts: List<LogUiModel>) {
             )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                alerts.forEach { alert ->
-                    AlertHistoryItemCard(alert)
+                alerts.take(15).forEach { alert ->
+                    AlertHistoryItemCard(alert, selectedStation)
                 }
             }
         }
@@ -359,7 +373,7 @@ fun AlertsHistorySection(alerts: List<LogUiModel>) {
 }
 
 @Composable
-fun AlertHistoryItemCard(alert: LogUiModel) {
+fun AlertHistoryItemCard(alert: LogUiModel, selectedStation: StationConfig?) {
     val tintColor = when (alert.level) {
         AlertLevel.CRITICAL -> Color(0xFFEF4444)
         AlertLevel.WARNING -> Color(0xFFF59E0B)
@@ -406,10 +420,47 @@ fun AlertHistoryItemCard(alert: LogUiModel) {
                     color = TextWhite,
                     fontSize = 16.sp
                 )
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Nhiệt độ:", color = TextDim, fontSize = 12.sp)
+                    Text("${alert.temp}°C", color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Độ ẩm:", color = TextDim, fontSize = 12.sp)
+                    Text("${alert.humid}%", color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Lượng mưa:", color = TextDim, fontSize = 12.sp)
+                    Text("${alert.rainVal} mm", color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(alert.description, color = TextDim, fontSize = 12.sp)
-                Text("Khoảng cách: ${alert.distanceRaw.toInt()}cm", color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                val stationHeight = selectedStation?.calibrationOffset?.toFloat() ?: 400f
+                val waterLevel = (stationHeight - alert.distanceRaw).coerceAtLeast(0f)
+                
+                Text(
+                    "Mực nước: ${waterLevel.toInt()} cm", 
+                    color = tintColor, 
+                    fontSize = 13.sp, 
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(

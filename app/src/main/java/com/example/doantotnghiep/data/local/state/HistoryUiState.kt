@@ -1,6 +1,7 @@
-package com.example.doantotnghiep.data.remote
+package com.example.doantotnghiep.data.local.state
 
 import com.example.doantotnghiep.data.local.enum.AlertLevel
+import com.example.doantotnghiep.data.remote.StationConfig
 
 data class HistoryScreenState(
     val stations: List<StationConfig> = emptyList(),

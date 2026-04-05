@@ -1,5 +1,6 @@
 package com.example.doantotnghiep.data.repository
 
+import com.example.doantotnghiep.db.dao.NotificationDao
 import com.example.doantotnghiep.data.remote.NotificationLog
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.remote.StationConfig
@@ -9,13 +10,20 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) {
+class FloodRepository @Inject constructor(
+    private val dbRef: DatabaseReference,
+    private val notificationDao: NotificationDao
+) {
+    private val scope = CoroutineScope(Dispatchers.IO)
     fun getRealtimeDatabase(stationId: String?): Flow<SensorData?> = callbackFlow {
         val ref = dbRef.child("stations").child(stationId ?: "").child("data")
         val listener = object : ValueEventListener {
@@ -91,15 +99,20 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
         name: String,
         offset: Int,
         warningThreshold: Double,
-        dangerThreshold: Double
+        dangerThreshold: Double,
+        latitude: Double?,
+        longitude: Double?
     ): Boolean {
         return try {
-            val updates = mapOf<String, Any>(
+            val updates = mutableMapOf<String, Any>(
                 "name" to name,
                 "calibrationOffset" to offset,
                 "warningThreshold" to warningThreshold,
                 "dangerThreshold" to dangerThreshold
             )
+            if (latitude != null) updates["latitude"] = latitude
+            if (longitude != null) updates["longitude"] = longitude
+
             dbRef.child("stations").child(stationId).child("config").updateChildren(updates).await()
             true
         } catch (_: Exception) {
@@ -107,29 +120,45 @@ class FloodRepository @Inject constructor(private val dbRef: DatabaseReference) 
         }
     }
 
-    fun getNotificationLog() : Flow<List<NotificationLog>> = callbackFlow {
-        val ref = dbRef.child("notification_logs").orderByChild("timestamp")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(p0: DataSnapshot) {
-                val logs = p0.children.mapNotNull {
-                    it.getValue(NotificationLog::class.java)?.copy(id = it.key ?: "")
-                }.reversed()
-                trySend(logs)
+    fun syncNotificationLogs() {
+        scope.launch {
+            val maxTimestamp = notificationDao.getMaxTimestamp() ?: 0L
+            
+            val ref = if (maxTimestamp == 0L) {
+                dbRef.child("notification_logs").orderByChild("timestamp").limitToLast(20)
+            } else {
+                dbRef.child("notification_logs").orderByChild("timestamp").startAt((maxTimestamp + 1).toDouble())
             }
 
-            override fun onCancelled(p0: DatabaseError) {}
+            ref.addChildEventListener(object : com.google.firebase.database.ChildEventListener {
+                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                    val log = snapshot.getValue(NotificationLog::class.java)?.copy(id = snapshot.key ?: "")
+                    if (log != null) {
+                        scope.launch {
+                            notificationDao.insertLog(log)
+                            if (notificationDao.getLogCount() > 20) {
+                                notificationDao.deleteOldestFive()
+                            }
+                        }
+                    }
+                }
+                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+                override fun onChildRemoved(snapshot: DataSnapshot) {}
+                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+                override fun onCancelled(error: DatabaseError) {}
+            })
         }
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
+    }
+
+    fun getNotificationLogs(): Flow<List<NotificationLog>> {
+        return notificationDao.getAllLogs()
     }
 
     suspend fun markAsRead(logId: String) {
-        dbRef.child("notification_logs").child(logId).child("isRead").setValue(true).await()
+        notificationDao.markAsRead(logId)
     }
 
-    suspend fun markAllAsRead(logs: List<NotificationLog>) {
-        val updates = mutableMapOf<String, Any>()
-        logs.forEach { if (!it.isRead) updates["/${it.id}/isRead"] = true }
-        if(updates.isNotEmpty()) dbRef.child("notification_logs").updateChildren(updates).await()
+    suspend fun markAllAsRead() {
+        notificationDao.markAllAsRead()
     }
 }

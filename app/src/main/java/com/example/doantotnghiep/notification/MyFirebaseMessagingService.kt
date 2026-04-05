@@ -26,5 +26,4 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         notificationHelper.sendAlert(title, body, statusInt)
     }
-
 }

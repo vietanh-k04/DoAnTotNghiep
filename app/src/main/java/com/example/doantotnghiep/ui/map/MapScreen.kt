@@ -71,7 +71,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
-import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -83,7 +82,7 @@ fun MapScreen(
     stations: List<StationMapUiModel>,
     isLocationGranted: Boolean,
     userLocation: LatLng?,
-    onUpdateStationConfig: (String, String, Int, Double, Double, (Boolean) -> Unit) -> Unit = { _, _, _, _, _, _ -> }
+    onUpdateStationConfig: (String, String, Int, Double, Double, Double?, Double?, (Boolean) -> Unit) -> Unit = { _, _, _, _, _, _, _, _ -> }
 ) {
     var selectedStation by remember { mutableStateOf<StationMapUiModel?>(null) }
 
@@ -101,12 +100,15 @@ fun MapScreen(
         position = CameraPosition.fromLatLngZoom(defaultLocation, 11f)
     }
 
+    var hasMovedToUserLocation by remember { mutableStateOf(false) }
+
     LaunchedEffect(userLocation) {
-        if (userLocation != null) {
+        if (userLocation != null && !hasMovedToUserLocation) {
             cameraPositionState.animate(
                 update = CameraUpdateFactory.newLatLngZoom(userLocation, 14f),
                 durationMs = 1500
             )
+            hasMovedToUserLocation = true
         }
     }
 
@@ -151,8 +153,7 @@ fun MapScreen(
         GoogleMap(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = isLocationGranted, mapType = MapType.NORMAL),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false)
+            properties = MapProperties(isMyLocationEnabled = isLocationGranted, mapType = MapType.NORMAL)
         ) {
             stations.forEach { station ->
                 val stationLatLng = LatLng(station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0)
@@ -234,17 +235,18 @@ fun MapScreen(
                     StationSettingDialog(
                         station = selectedStation!!,
                         onDismiss = { showSettingsSheet = false },
-                        onSave = { newName, newOffset, newWarning, newDanger, onComplete ->
+                        onSave = { newName, newOffset, newWarning, newDanger, newLat, newLng, onComplete ->
                             onUpdateStationConfig(
                                 selectedStation!!.stationConfig.id ?: "",
                                 newName,
                                 newOffset.toInt(),
                                 newWarning.toDouble(),
                                 newDanger.toDouble(),
+                                newLat,
+                                newLng,
                                 onComplete
                             )
                         },
-                        onRequestLocationUpdate = {},
                         onRequestOffsetUpdate = {}
                     )
                 }

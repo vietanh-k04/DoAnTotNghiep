@@ -88,6 +88,7 @@ dependencies {
 
     // --- 6. BACKGROUND & LOCAL DB ---
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.androidx.room.compiler)
 
@@ -96,4 +97,14 @@ dependencies {
     implementation(libs.play.services.location.v2110)
 
     implementation(libs.lottie.compose)
+
+    implementation(platform(libs.firebase.bom.v32xx))
+
+    // Thư viện Firebase Machine Learning
+    implementation(libs.firebase.ml.modeldownloader)
+
+    // Thư viện TensorFlow Lite
+    implementation(libs.tensorflow.lite)
+
+    implementation(libs.tensorflow.lite.select.tf.ops)
 }

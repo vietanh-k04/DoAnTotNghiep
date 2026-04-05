@@ -1,6 +1,10 @@
 package com.example.doantotnghiep.ui.dialog
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +60,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.doantotnghiep.DANGER_THRESHOLD
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.WARNING_THRESHOLD
@@ -66,6 +72,9 @@ import com.example.doantotnghiep.ui.theme.StatusWarning
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
 import com.example.doantotnghiep.ui.theme.VividBlue
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -73,14 +82,18 @@ import com.google.firebase.database.ValueEventListener
 
 private const val TAG = "StationSettingDialog"
 
+enum class LocationFetchState {
+    IDLE, FETCHING, SUCCESS, ERROR
+}
+
 @Composable
 fun StationSettingDialog(
     station: StationMapUiModel,
     onDismiss: () -> Unit,
-    onSave: (String, Float, Float, Float, (Boolean) -> Unit) -> Unit,
-    onRequestLocationUpdate: () -> Unit,
+    onSave: (String, Float, Float, Float, Double?, Double?, (Boolean) -> Unit) -> Unit,
     onRequestOffsetUpdate: () -> Unit
 ) {
+    val context = LocalContext.current
     var nameValue by remember(station.stationConfig.id) {
         mutableStateOf(station.stationConfig.name ?: "")
     }
@@ -97,11 +110,66 @@ fun StationSettingDialog(
         mutableFloatStateOf(station.stationConfig.dangerThreshold?.toFloat() ?: 0f)
     }
 
-    var isFetchingLocation by remember { mutableStateOf(false) }
-
-    LaunchedEffect(station.stationConfig.latitude, station.stationConfig.longitude) {
-        isFetchingLocation = false
+    var latitudeValue by remember(station.stationConfig.id) {
+        mutableStateOf(station.stationConfig.latitude)
     }
+
+    var longitudeValue by remember(station.stationConfig.id) {
+        mutableStateOf(station.stationConfig.longitude)
+    }
+
+    var locationFetchState by remember { mutableStateOf(LocationFetchState.IDLE) }
+    var fetchedLatitude by remember { mutableStateOf<Double?>(null) }
+    var fetchedLongitude by remember { mutableStateOf<Double?>(null) }
+
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                          permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            if (!granted) {
+                locationFetchState = LocationFetchState.ERROR
+            }
+        }
+    )
+
+    LaunchedEffect(locationFetchState) {
+        if (locationFetchState == LocationFetchState.FETCHING) {
+            val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            
+            if (hasPermission) {
+                try {
+                    fusedLocationClient.getCurrentLocation(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        CancellationTokenSource().token
+                    ).addOnSuccessListener { currLocation ->
+                        if (currLocation != null) {
+                            fetchedLatitude = currLocation.latitude
+                            fetchedLongitude = currLocation.longitude
+                            locationFetchState = LocationFetchState.SUCCESS
+                        } else {
+                            locationFetchState = LocationFetchState.ERROR
+                        }
+                    }.addOnFailureListener {
+                        locationFetchState = LocationFetchState.ERROR
+                    }
+                } catch (_: SecurityException) {
+                    locationFetchState = LocationFetchState.ERROR
+                }
+            } else {
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
+        }
+    }
+
 
     var calibrationState by remember { mutableStateOf(CalibrationState.IDLE) }
     var calibrationValues by remember { mutableStateOf(listOf<Int>()) }
@@ -288,39 +356,38 @@ fun StationSettingDialog(
 
             Surface(
                 onClick = {
-                    if(!isFetchingLocation) {
-                        isFetchingLocation = true
-                        onRequestLocationUpdate()
+                    if (locationFetchState == LocationFetchState.IDLE) {
+                        locationFetchState = LocationFetchState.FETCHING
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 color = GlassBg,
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, if(isFetchingLocation) VividBlue else Color.Transparent)
+                border = BorderStroke(1.dp, if (locationFetchState == LocationFetchState.FETCHING) VividBlue else Color.Transparent)
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = if (isFetchingLocation) VividBlue else TextDim)
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = if (locationFetchState == LocationFetchState.FETCHING) VividBlue else TextDim)
                     
                     Spacer(modifier = Modifier.width(16.dp))
                     
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if(isFetchingLocation) stringResource(R.string.map_is_fetching_location) else stringResource(R.string.map_fetch_location),
+                            text = if (locationFetchState == LocationFetchState.FETCHING) stringResource(R.string.map_is_fetching_location) else stringResource(R.string.map_fetch_location),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = if(isFetchingLocation) VividBlue else TextWhite
+                            color = if (locationFetchState == LocationFetchState.FETCHING) VividBlue else TextWhite
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = stringResource(R.string.map_location_on_value, station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0),
+                            text = stringResource(R.string.map_location_on_value, latitudeValue ?: 0.0, longitudeValue ?: 0.0),
                             fontSize = 13.sp,
                             color = TextDim
                         )
                     }
 
-                    if(isFetchingLocation) {
+                    if(locationFetchState == LocationFetchState.FETCHING) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = VividBlue, strokeWidth = 2.dp)
                     } else {
                         Icon(Icons.Default.Sync, contentDescription = null, tint = TextDim)
@@ -344,7 +411,7 @@ fun StationSettingDialog(
                 Button(
                     onClick = {
                         isSaving = true
-                        onSave(nameValue, offsetValue.toFloat(), warningValue, dangerValue) { success ->
+                        onSave(nameValue, offsetValue.toFloat(), warningValue, dangerValue, latitudeValue, longitudeValue) { success ->
                             isSaving = false
                             if(success) onDismiss()
                         }
@@ -388,6 +455,33 @@ fun StationSettingDialog(
                     onRetry = {
                         calibrationValues = emptyList()
                         calibrationState = CalibrationState.MEASURING
+                    }
+                )
+            }
+            else -> {}
+        }
+
+        when (locationFetchState) {
+            LocationFetchState.FETCHING -> {
+                LocationFetchingDialog(onCancel = { locationFetchState = LocationFetchState.IDLE })
+            }
+            LocationFetchState.SUCCESS -> {
+                LocationSuccessDialog(
+                    lat = fetchedLatitude ?: 0.0,
+                    lng = fetchedLongitude ?: 0.0,
+                    onCancel = { locationFetchState = LocationFetchState.IDLE },
+                    onUpdate = {
+                        latitudeValue = fetchedLatitude
+                        longitudeValue = fetchedLongitude
+                        locationFetchState = LocationFetchState.IDLE
+                    }
+                )
+            }
+            LocationFetchState.ERROR -> {
+                LocationErrorDialog(
+                    onCancel = { locationFetchState = LocationFetchState.IDLE },
+                    onRetry = {
+                        locationFetchState = LocationFetchState.FETCHING
                     }
                 )
             }

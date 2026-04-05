@@ -3,8 +3,8 @@ package com.example.doantotnghiep.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.data.local.enum.AlertLevel
-import com.example.doantotnghiep.data.remote.HistoryScreenState
-import com.example.doantotnghiep.data.remote.LogUiModel
+import com.example.doantotnghiep.data.local.state.HistoryScreenState
+import com.example.doantotnghiep.data.local.state.LogUiModel
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
@@ -35,7 +35,7 @@ class HistoryViewModel @Inject constructor(
 
     private val _stations = MutableStateFlow<List<StationConfig>>(emptyList())
     private val _selectedStation = MutableStateFlow<StationConfig?>(null)
-    private val _selectedTimeRange = MutableStateFlow("1 Ngày")
+    private val _selectedTimeRange = MutableStateFlow("1 Giờ")
     
     // Lắng nghe logs realtime của trạm đang chọn
     private val _logs = MutableStateFlow<List<LogUiModel>>(emptyList())
@@ -54,10 +54,10 @@ class HistoryViewModel @Inject constructor(
         // Filter by time range logic (thời gian tính bằng ms)
         val currentTime = System.currentTimeMillis()
         val timeDiff = when (timeRange) {
-            "1 Ngày" -> 1L * 24 * 60 * 60 * 1000
-            "3 Ngày" -> 3L * 24 * 60 * 60 * 1000
-            "7 Ngày" -> 7L * 24 * 60 * 60 * 1000
-            else -> 1L * 24 * 60 * 60 * 1000
+            "1 Giờ" -> 1L * 60 * 60 * 1000
+            "6 Giờ" -> 6L * 60 * 60 * 1000
+            "12 Giờ" -> 12L * 60 * 60 * 1000
+            else -> 1L * 60 * 60 * 1000
         }
         val cutoffTime = currentTime - timeDiff
 
@@ -117,8 +117,8 @@ class HistoryViewModel @Inject constructor(
                 val sdfDate = SimpleDateFormat("dd MMM", Locale("vi", "VN"))
                 val sdfTime = SimpleDateFormat("HH:mm a", Locale.getDefault())
 
-                // Ngưỡng cảnh báo lấy từ config của trạm
-                val warnThresh = station.warningThreshold?.toFloat() ?: 150f
+                // Ngưỡng cảnh báo lấy từ config của trạm (so sánh theo mực nước)
+                val warnThresh = station.warningThreshold?.toFloat() ?: 20f
                 val dangerThresh = station.dangerThreshold?.toFloat() ?: 50f
 
                 for (child in snapshot.children) {
@@ -132,10 +132,12 @@ class HistoryViewModel @Inject constructor(
                     
                     val dateObj = Date(timestamp)
                     
-                    // Logic khoảng cách (nếu distance càng nhỏ thì càng gần mặt nước/càng ngập)
+                    val stationHeight = station.calibrationOffset?.toFloat() ?: 400f
+                    val waterLevel = (stationHeight - distanceRaw).coerceAtLeast(0f)
+
                     val level = when {
-                        distanceRaw <= dangerThresh -> AlertLevel.CRITICAL
-                        distanceRaw <= warnThresh -> AlertLevel.WARNING 
+                        waterLevel >= dangerThresh -> AlertLevel.CRITICAL
+                        waterLevel >= warnThresh -> AlertLevel.WARNING
                         else -> AlertLevel.SAFE                
                     }
 

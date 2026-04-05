@@ -39,10 +39,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.local.WaveCardUiModel
-import com.example.doantotnghiep.ui.theme.*
-import com.example.doantotnghiep.utils.*
+import com.example.doantotnghiep.data.remote.SensorData
+import com.example.doantotnghiep.ui.theme.GlassBg
+import com.example.doantotnghiep.ui.theme.Orange
+import com.example.doantotnghiep.ui.theme.StatusSuccess
+import com.example.doantotnghiep.ui.theme.TextDim
+import com.example.doantotnghiep.ui.theme.TextWhite
+import com.example.doantotnghiep.ui.theme.WaterBlue
+import com.example.doantotnghiep.utils.getRainStatus
+import com.example.doantotnghiep.utils.statusColor
+import com.example.doantotnghiep.utils.statusIcon
+import com.example.doantotnghiep.utils.waveColor
 
 @Composable
 fun WaveCard(data: WaveCardUiModel) {
@@ -172,7 +180,7 @@ fun EnvironmentMetric(icon: ImageVector, iconTint: Color, label: String, value: 
 }
 
 @Composable
-fun EnvironmentSection(sensorData: SensorData?) {
+fun EnvironmentSection(sensorData: SensorData?, onHistoryClick: () -> Unit = {}) {
     val rainRaw = sensorData?.rainVal ?: 1024
 
     val rainInfor = getRainStatus(rainRaw)
@@ -189,7 +197,7 @@ fun EnvironmentSection(sensorData: SensorData?) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
-            TextButton(onClick = { }) {
+            TextButton(onClick = onHistoryClick) {
                 Text(stringResource(R.string.dashboard_history), color = TextWhite)
             }
         }

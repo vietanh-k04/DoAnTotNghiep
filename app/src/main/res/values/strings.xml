@@ -24,7 +24,7 @@
     <string name="dashboard_falling">Mực nước giảm ↓</string>
     <string name="dashboard_stable">Ổn định →</string>
     <string name="bar_menu">Menu</string>
-    <string name="bar_notification">Notifications</string>
+    <string name="bar_notification">Thông báo</string>
     <string name="bar_home">Màn hình chính</string>
     <string name="bar_map">Bản đồ</string>
     <string name="bar_analytic">Phân tích</string>
@@ -81,4 +81,8 @@
     <string name="hide_password">Ẩn mật khẩu</string>
     <string name="show_password">Hiện mật khẩu</string>
     <string name="water_forecast">Dự báo mực nước</string>
+    <string name="map_fetch_location_success">Lấy toạ độ thành công!</string>
+    <string name="map_fetch_location_error">Lỗi lấy toạ độ!</string>
+    <string name="map_fetch_location_error_desc">Vui lòng kiểm tra quyền truy cập vị trí và thử lại.</string>
+    <string name="retry">Thử lại</string>
 </resources>
