@@ -2,6 +2,7 @@ package com.example.doantotnghiep.data.ai
 
 import android.content.Context
 import android.util.Log
+import com.example.doantotnghiep.data.local.HourlyData
 import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions
 import com.google.firebase.ml.modeldownloader.DownloadType
 import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader
@@ -10,10 +11,10 @@ import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 
 class FloodPredictionHelper(private val context: Context) {
-    private val featMean = floatArrayOf(0.0167269f, 1518.8413f, 0.0f, 0.0f, 43.589306f)
-    private val featScale = floatArrayOf(0.0188076f, 3291.5815f, 0.707106f, 0.707106f, 2.856556f)
-    private val targMean = 43.601562f
-    private val targScale = 2.8390098f
+    private val featMean = floatArrayOf(0.0167269f, 1518.8413f, 0.368377f, -0.276334f, 0.69607f)
+    private val featScale = floatArrayOf(0.0188076f, 3291.5815f, 0.5829693f, 0.6693913f, 0.6571617f)
+    private val targMean = 0.708326f
+    private val targScale = 0.6811365f
     private val CM_TO_FEET = 0.0328084f
     private val FEET_TO_CM = 30.48f
 
@@ -98,7 +99,11 @@ class FloodPredictionHelper(private val context: Context) {
 
     fun postprocessOutput(tflitePrediction: Float): Float {
         val predictedWaterLevelFt = (tflitePrediction * targScale) + targMean
-        val predictedWaterLevelCm = predictedWaterLevelFt * FEET_TO_CM
+        var predictedWaterLevelCm = predictedWaterLevelFt * FEET_TO_CM
+
+        if (predictedWaterLevelCm < 0) {
+            predictedWaterLevelCm = 0f
+        }
 
         return predictedWaterLevelCm
     }

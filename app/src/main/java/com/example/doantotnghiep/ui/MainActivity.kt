@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.doantotnghiep.data.local.enum.ScreenRoute
 import com.example.doantotnghiep.ui.bar.FloodGuardBottomBar
 import com.example.doantotnghiep.ui.bar.FloodGuardTopBar
+import com.example.doantotnghiep.ui.screen.AnalyticScreen
 import com.example.doantotnghiep.ui.screen.HistoryScreen
 import com.example.doantotnghiep.ui.screen.HomeScreen
 import com.example.doantotnghiep.ui.screen.MapScreenWrapper
@@ -75,7 +76,7 @@ fun MainLayout(modifier: Modifier = Modifier) {
                         locationState = locationState,
                         viewModel = mapViewModel,
                     )
-                    ScreenRoute.ANALYTIC -> TestFloodModelScreen()
+                    ScreenRoute.ANALYTIC -> AnalyticScreen()
                     ScreenRoute.HISTORY -> HistoryScreen(viewModel = historyViewModel)
                 }
             }

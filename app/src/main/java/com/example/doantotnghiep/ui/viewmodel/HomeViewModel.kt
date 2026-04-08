@@ -48,6 +48,7 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
     private var observeJob: Job? = null
     private var currentObservedStationId: String? = null
+    private var lastObservedConfig: StationConfig? = null
 
     private var hasAlertedRecalibration = false
     private var hasAlertedObstruction = false
@@ -110,6 +111,11 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
             ) { config, sensorData ->
                 Pair(config, sensorData)
             }.collect { (config, sensorData) ->
+                if (config != lastObservedConfig) {
+                    lastWaterLevel = -1.0
+                    lastObservedConfig = config
+                }
+
                 val offset = config?.calibrationOffset ?: 0
                 val rawWaterLevel = (offset - (sensorData?.distanceRaw ?: 0)).toDouble()
                 val currentLevel = calculateWaterLevel(sensorData, config)
@@ -142,11 +148,14 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
                 if (isInvalid) {
                     _uiState.update { currentState ->
+                        val rawTimestamp = sensorData?.timestamp
+                        val fixedTimestamp = if (rawTimestamp != null && rawTimestamp < 10000000000L) rawTimestamp * 1000 else rawTimestamp ?: currentState.timestamp
+
                         currentState.copy(
                             temperature = sensorData?.temp ?: currentState.temperature,
                             humidity = sensorData?.humid ?: currentState.humidity,
                             rainRaw = sensorData?.rainVal ?: currentState.rainRaw,
-                            timestamp = sensorData?.timestamp ?: currentState.timestamp
+                            timestamp = fixedTimestamp
                         )
                     }
                     return@collect
@@ -229,6 +238,9 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
 
     private fun updateUI(level: Double, status: Int, trend: Int, data: SensorData?) {
         _uiState.update { currentState ->
+            val rawTimestamp = data?.timestamp
+            val fixedTimestamp = if (rawTimestamp != null && rawTimestamp < 10000000000L) rawTimestamp * 1000 else rawTimestamp ?: currentState.timestamp
+            
             currentState.copy(
                 waterLevel = level,
                 status = status,
@@ -236,7 +248,7 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
                 rainRaw = data?.rainVal ?: 1024,
                 temperature = data?.temp ?: 0.0,
                 humidity = data?.humid ?: 0.0,
-                timestamp = data?.timestamp ?: 0L,
+                timestamp = fixedTimestamp,
                 waterPercent = percent
             )
         }

@@ -49,9 +49,13 @@ import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.ui.theme.GlassBg
 import com.example.doantotnghiep.ui.theme.SoftBgBottom
 import com.example.doantotnghiep.ui.theme.SoftBgTop
+import com.example.doantotnghiep.ui.theme.StatusDanger
+import com.example.doantotnghiep.ui.theme.StatusSuccess
+import com.example.doantotnghiep.ui.theme.StatusWarning
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
 import com.example.doantotnghiep.ui.viewmodel.HistoryViewModel
+import com.example.doantotnghiep.utils.getRainStatus
 
 private const val TAG = "HistoryScreen"
 
@@ -232,13 +236,19 @@ fun HistoryChartCard(
 
                     val defaultPoints = listOf(0.5f, 0.5f)
                     val points = if (logs.size >= 2) {
-                        val waterLevels = logs.take(10).reversed().map { log ->
-                             (stationHeight - log.distanceRaw).coerceAtLeast(0f)
+                        val maxPoints = 50
+                        val sampledLogs = if (logs.size > maxPoints) {
+                            val step = logs.size.toDouble() / maxPoints
+                            (0 until maxPoints).map { i -> logs[(i * step).toInt()] }
+                        } else {
+                            logs
                         }
-                        val maxVal = waterLevels.maxOrNull() ?: 1f
-                        val minVal = waterLevels.minOrNull() ?: 0f
-                        val range = if (maxVal == minVal) 1f else (maxVal - minVal)
-                        waterLevels.map { ((it - minVal) / range).coerceIn(0.1f, 0.9f) }
+                        
+                        sampledLogs.reversed().map { log ->
+                            val waterLevel = (stationHeight - log.distanceRaw).coerceAtLeast(0f)
+                            val normalized = if (stationHeight > 0) waterLevel / stationHeight else 0f
+                            normalized.coerceIn(0.1f, 0.9f)
+                        }
                     } else {
                         defaultPoints
                     }
@@ -296,24 +306,24 @@ fun HistoryChartCard(
                         style = Stroke(width = 8f, cap = StrokeCap.Round)
                     )
 
-                    val maxPointIndex = points.indexOf(points.maxOrNull() ?: 0f)
-                    val maxPointX = maxPointIndex * stepX
-                    val maxPointY = height - (points[maxPointIndex] * height)
+                    val latestPointIndex = points.size - 1
+                    val latestPointX = latestPointIndex * stepX
+                    val latestPointY = height - (points[latestPointIndex] * height)
 
                     drawCircle(
                         color = Color(0xFF0EA5E9).copy(alpha = 0.3f),
                         radius = 24f,
-                        center = Offset(maxPointX, maxPointY)
+                        center = Offset(latestPointX, latestPointY)
                     )
                     drawCircle(
                         color = Color.White,
                         radius = 12f,
-                        center = Offset(maxPointX, maxPointY)
+                        center = Offset(latestPointX, latestPointY)
                     )
                     drawCircle(
                         color = Color(0xFF0EA5E9),
                         radius = 8f,
-                        center = Offset(maxPointX, maxPointY)
+                        center = Offset(latestPointX, latestPointY)
                     )
                 }
             }
@@ -375,10 +385,12 @@ fun AlertsHistorySection(alerts: List<LogUiModel>, selectedStation: StationConfi
 @Composable
 fun AlertHistoryItemCard(alert: LogUiModel, selectedStation: StationConfig?) {
     val tintColor = when (alert.level) {
-        AlertLevel.CRITICAL -> Color(0xFFEF4444)
-        AlertLevel.WARNING -> Color(0xFFF59E0B)
-        AlertLevel.SAFE -> Color(0xFF10B981)
+        AlertLevel.CRITICAL -> StatusDanger
+        AlertLevel.WARNING -> StatusWarning
+        AlertLevel.SAFE -> StatusSuccess
     }
+
+    val statusRain = getRainStatus(alert.rainVal.toInt())
     val icon = when (alert.level) {
         AlertLevel.SAFE -> Icons.Default.CheckCircle
         else -> Icons.Default.WarningAmber
@@ -444,8 +456,8 @@ fun AlertHistoryItemCard(alert: LogUiModel, selectedStation: StationConfig?) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Lượng mưa:", color = TextDim, fontSize = 12.sp)
-                    Text("${alert.rainVal} mm", color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Khả năng mưa:", color = TextDim, fontSize = 12.sp)
+                    Text(statusRain.second, color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
 

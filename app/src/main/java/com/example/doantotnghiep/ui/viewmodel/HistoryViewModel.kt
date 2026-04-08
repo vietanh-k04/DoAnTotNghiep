@@ -124,7 +124,9 @@ class HistoryViewModel @Inject constructor(
                 for (child in snapshot.children) {
                     val raw = child.getValue(SensorData::class.java) ?: continue
                     
-                    val timestamp = raw.timestamp ?: continue
+                    val rawTimestamp = raw.timestamp ?: continue
+                    val timestamp = if (rawTimestamp < 10000000000L) rawTimestamp * 1000 else rawTimestamp
+
                     val distanceRaw = raw.distanceRaw?.toFloat() ?: 0f
                     val temp = raw.temp?.toFloat() ?: 0f
                     val humid = raw.humid?.toFloat() ?: 0f

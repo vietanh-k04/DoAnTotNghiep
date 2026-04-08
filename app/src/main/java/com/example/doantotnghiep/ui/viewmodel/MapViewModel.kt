@@ -12,7 +12,6 @@ import com.example.doantotnghiep.data.repository.FloodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -45,8 +44,6 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                 launch {
                     var lastTimestamp: Long? = null
                     var lastConfig: StationConfig? = null
-                    var isFirstRead = true
-                    var timeoutJob: Job? = null
 
                     combine(
                         floodRepository.observeStationConfig(stationId),
@@ -60,45 +57,32 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                             val configChanged = lastConfig != currentConfig
                             lastConfig = currentConfig
 
-                            if (isFirstRead) {
-                                isFirstRead = false
-                                lastTimestamp = currentTimestamp
-                                return@collect
-                            }
-
                             if (currentTimestamp == lastTimestamp && !configChanged) {
                                 return@collect
                             }
 
                             if (currentTimestamp != lastTimestamp) {
                                 lastTimestamp = currentTimestamp
-                                timeoutJob?.cancel()
-                                timeoutJob = launch {
-                                    delay(15000)
-                                    _stationsMap.update { currentMap ->
-                                        val newMap = currentMap.toMutableMap()
-                                        newMap.remove(stationId)
-                                        newMap
-                                    }
-                                    _stationList.value = _stationsMap.value.values.toList()
-                                }
                             }
 
                             val offset = currentConfig.calibrationOffset ?: 0
                             val rawWaterLevel = (offset - (sensorData.distanceRaw ?: 0)).toDouble()
 
                             val previousData = _stationsMap.value[stationId]?.sensorData
-                            val previousLevel = previousData?.distanceRaw?.toDouble() ?: -1.0
+                            // Nếu cấu hình thay đổi (vd: người dùng hiệu chuẩn), bỏ qua validate bằng cách đặt previousLevel = -1.0
+                            val previousLevel = if (configChanged) -1.0 else (previousData?.distanceRaw?.toDouble() ?: -1.0)
 
                             val validationState = com.example.doantotnghiep.utils.WaterLevelValidator.validate(rawWaterLevel, previousLevel)
                             val isInvalid = validationState != com.example.doantotnghiep.utils.WaterLevelState.VALID
 
                             if (isInvalid) {
-                                // Nếu là dữ liệu nhiễu, chỉ update các chỉ số môi trường (nếu trạm đang hiển thị)
-                                _stationsMap.update { currentMap ->
-                                    val newMap = currentMap.toMutableMap()
-                                    val existingUiModel = newMap[stationId]
-                                    if (existingUiModel != null) {
+                                val currentMap = _stationsMap.value
+                                val existingUiModel = currentMap[stationId]
+                                
+                                if (existingUiModel != null) {
+                                    // Nếu là dữ liệu nhiễu và trạm đã có trên bản đồ, chỉ update môi trường
+                                    _stationsMap.update { map ->
+                                        val newMap = map.toMutableMap()
                                         newMap[stationId] = existingUiModel.copy(
                                             sensorData = existingUiModel.sensorData.copy(
                                                 temp = sensorData.temp,
@@ -107,11 +91,13 @@ class MapViewModel @Inject constructor(val floodRepository: FloodRepository) : V
                                                 timestamp = sensorData.timestamp
                                             )
                                         )
+                                        newMap
                                     }
-                                    newMap
+                                    _stationList.value = _stationsMap.value.values.toList()
+                                    return@collect
                                 }
-                                _stationList.value = _stationsMap.value.values.toList()
-                                return@collect
+                                // Nếu trạm chưa xuất hiện (existingUiModel == null), KHÔNG return.
+                                // Bắt buộc phải tạo trạm để hiển thị, nếu không người dùng sẽ không thấy trạm để hiệu chuẩn.
                             }
 
                             val level = if(rawWaterLevel < 0) 0 else rawWaterLevel.toInt()

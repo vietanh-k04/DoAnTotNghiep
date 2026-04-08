@@ -63,25 +63,37 @@ class FloodRepository @Inject constructor(
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    suspend fun getStationLogs(stationId: String?) : StationLogs? {
+    suspend fun getStationLogs(stationId: String?) : List<SensorData>? {
         return try {
             val snapshot = dbRef.child("stations").child(stationId ?: "").child("logs").get().await()
-            snapshot.getValue(StationLogs::class.java)
+            val list = mutableListOf<SensorData>()
+            for (child in snapshot.children) {
+                val data = child.getValue(SensorData::class.java)
+                if (data != null) {
+                    list.add(data)
+                }
+            }
+            list
         } catch (_: Exception) {
             null
         }
-
     }
 
     suspend fun getAllStations(): List<StationConfig> {
-        return try {
-            val snapshot = dbRef.child("stations").get().await()
-            snapshot.children.mapNotNull {
-                it.child("config").getValue(StationConfig::class.java)
+        var retries = 3
+        while (retries > 0) {
+            try {
+                val snapshot = dbRef.child("stations").get().await()
+                return snapshot.children.mapNotNull {
+                    it.child("config").getValue(StationConfig::class.java)
+                }
+            } catch (e: Exception) {
+                retries--
+                if (retries == 0) return emptyList()
+                kotlinx.coroutines.delay(2000)
             }
-        } catch (_: Exception) {
-            emptyList()
         }
+        return emptyList()
     }
 
     suspend fun updateDeviceKey(stationId: String?, rawKey: String?): Boolean {

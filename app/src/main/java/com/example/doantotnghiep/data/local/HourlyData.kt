@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.data.ai
+package com.example.doantotnghiep.data.local
 
 data class HourlyData(
     val rainfallCm: Float,

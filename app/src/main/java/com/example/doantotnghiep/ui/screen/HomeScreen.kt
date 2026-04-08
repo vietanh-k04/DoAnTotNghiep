@@ -284,6 +284,14 @@ fun StationScanningRadar(userLocation: LatLng?, stations: List<StationMapUiModel
     LaunchedEffect(userLocation, stations) {
         if (userLocation != null && stations.isNotEmpty()) {
             homeViewModel.scanAndSyncData(userLocation.latitude, userLocation.longitude, stations)
+        } else if (stations.isNotEmpty()) {
+            // Không có GPS nhưng có trạm -> Tự động load trạm đầu tiên thay vì báo lỗi "mất hết"
+            val defaultStation = stations.first()
+            homeViewModel.scanAndSyncData(
+                defaultStation.stationConfig.latitude ?: 0.0,
+                defaultStation.stationConfig.longitude ?: 0.0,
+                stations
+            )
         } else if (stations.isEmpty()) {
             delay(2500)
             if (homeViewModel.uiState.value.isLocal) {
@@ -293,11 +301,7 @@ fun StationScanningRadar(userLocation: LatLng?, stations: List<StationMapUiModel
     }
 
     LaunchedEffect(userLocation) {
-        if (userLocation == null) {
-            delay(3000)
-            if (homeViewModel.uiState.value.isLocal) {
-                homeViewModel.setLocalMode(false)
-            }
-        }
+        // Xóa logic ép buộc sang màn hình Thời tiết nếu không có userLocation
+        // Việc này gây ra lỗi "trắng màn hình" nếu user bấm "Bỏ qua" ở dialog NoStation.
     }
 }
