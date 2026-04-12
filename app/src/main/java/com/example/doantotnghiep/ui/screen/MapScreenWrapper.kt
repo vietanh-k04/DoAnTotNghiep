@@ -4,11 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.doantotnghiep.data.local.state.LocationState
+import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.ui.map.MapScreen
 import com.example.doantotnghiep.ui.viewmodel.MapViewModel
 
 @Composable
-fun MapScreenWrapper(locationState: LocationState, viewModel: MapViewModel) {
+fun MapScreenWrapper(
+    locationState: LocationState,
+    viewModel: MapViewModel,
+    onNavigateToHistory: (StationConfig) -> Unit
+) {
     val stations by viewModel.stationList.collectAsState()
     MapScreen(
         stations = stations,
@@ -16,6 +21,9 @@ fun MapScreenWrapper(locationState: LocationState, viewModel: MapViewModel) {
         userLocation = locationState.location,
         onUpdateStationConfig = { id, name, offset, warning, danger, lat, lng, onComplete ->
             viewModel.updateStationConfig(id, name, offset, warning, danger, lat, lng, onComplete)
+        },
+        onHistoryClick = { station ->
+            onNavigateToHistory(station.stationConfig)
         }
     )
 }

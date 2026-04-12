@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ShowChart
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -29,8 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -44,19 +48,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.doantotnghiep.MOCK_AI_CONFIDENCE_FLOAT
+import com.example.doantotnghiep.MOCK_AI_CONFIDENCE_PERCENT
 import com.example.doantotnghiep.R
+import com.example.doantotnghiep.TIME_FRAMES
 import com.example.doantotnghiep.data.local.AiPrediction
 import com.example.doantotnghiep.ui.theme.BlueRecorded
 import com.example.doantotnghiep.ui.theme.GlassBg
 import com.example.doantotnghiep.ui.theme.OrangePredicted
 import com.example.doantotnghiep.ui.theme.RedDanger
-import com.example.doantotnghiep.ui.theme.SoftBgBottom
-import com.example.doantotnghiep.ui.theme.SoftBgTop
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
 import com.example.doantotnghiep.ui.viewmodel.AnalyticUiState
 import com.example.doantotnghiep.ui.viewmodel.AnalyticViewModel
+import com.example.doantotnghiep.utils.appBackground
+import com.example.doantotnghiep.utils.getTrendStatusText
+import java.util.Locale
+
+private const val TAG = "AnalyticScreen"
 
 @Composable
 fun AnalyticScreen(viewModel: AnalyticViewModel = hiltViewModel()) {
@@ -65,7 +76,7 @@ fun AnalyticScreen(viewModel: AnalyticViewModel = hiltViewModel()) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))
+            .appBackground()
     ) {
         if (uiState.isLoading) {
             CircularProgressIndicator(
@@ -82,33 +93,77 @@ fun AnalyticScreen(viewModel: AnalyticViewModel = hiltViewModel()) {
                 textAlign = TextAlign.Center
             )
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                TimeSelectorRow(uiState.selectedTime) { viewModel.setTimeFrame(it) }
+            AnalyticContent(uiState, onTimeSelected = { viewModel.setTimeFrame(it) })
+        }
+    }
+}
 
-                ForecastChartCard(uiState)
+@Composable
+private fun AnalyticContent(uiState: AnalyticUiState, onTimeSelected: (String) -> Unit) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (!uiState.isStationActive) Modifier.blur(12.dp) else Modifier)
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            TimeSelectorRow(uiState.selectedTime, onTimeSelected)
+            ForecastChartCard(uiState)
+            AiConfidenceSimpleCard()
+            AiPredictionsSection(uiState.predictions, uiState.selectedTime)
+        }
 
-                AiConfidenceSimpleCard()
+        if (!uiState.isStationActive) {
+            InactiveStationOverlay()
+        }
+    }
+}
 
-                AiPredictionsSection(uiState.predictions)
-            }
+@Composable
+private fun InactiveStationOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(1f)
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Icon(
+                Icons.Rounded.WarningAmber,
+                contentDescription = null,
+                tint = OrangePredicted,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.INACTIVE_STATION_WARNING),
+                color = TextWhite,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
 
 @Composable
 fun TimeSelectorRow(selectedTime: String, onTimeSelected: (String) -> Unit) {
-    val times = listOf("1h", "6h", "12h", "24h")
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        times.forEach { time ->
+        TIME_FRAMES.forEach { time ->
             val isSelected = time == selectedTime
             Box(
                 modifier = Modifier
@@ -139,185 +194,15 @@ fun ForecastChartCard(uiState: AnalyticUiState) {
             .background(GlassBg)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        stringResource(R.string.water_forecast),
-                        color = TextDim,
-                        fontSize = 14.sp
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            String.format(java.util.Locale.US, "%.1fm", uiState.currentWaterLevel),
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = TextWhite
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        val statusColor = if (uiState.isIncreasing) OrangePredicted else BlueRecorded
-                        val statusText = when {
-                            uiState.isIncreasing -> "Đang tăng"
-                            uiState.isDecreasing -> "Đang giảm"
-                            else -> "Ổn định"
-                        }
-                        
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(statusColor.copy(alpha = 0.15f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Rounded.ShowChart,
-                                    contentDescription = null,
-                                    tint = statusColor,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    statusText,
-                                    color = statusColor,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(width = 16.dp, height = 3.dp)
-                                .background(BlueRecorded)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "GHI NHẬN",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDim
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Canvas(modifier = Modifier.size(width = 16.dp, height = 3.dp)) {
-                            drawLine(
-                                color = OrangePredicted,
-                                start = Offset(0f, size.height / 2),
-                                end = Offset(size.width, size.height / 2),
-                                strokeWidth = 4f,
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "AI DỰ ĐOÁN",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDim
-                        )
-                    }
-                }
-            }
-
+            ChartHeaderInfo(uiState)
             Spacer(modifier = Modifier.height(30.dp))
-
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val width = size.width
-                    val height = size.height
-
-                    val recordedPoints = uiState.recordedPoints
-                    val predictedPoints = uiState.predictedPoints
-
-                    val totalPoints = recordedPoints.size + predictedPoints.size - 1
-                    val stepX = if (totalPoints > 1) width / (totalPoints - 1) else width
-
-                    // Dùng dangerThresholdPercent từ ViewModel để vẽ chuẩn xác hơn
-                    val floodStageY = height * (1f - uiState.dangerThresholdPercent)
-                    drawLine(
-                        color = RedDanger.copy(alpha = 0.5f),
-                        start = Offset(0f, floodStageY),
-                        end = Offset(width, floodStageY),
-                        strokeWidth = 2f,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f), 0f)
-                    )
-
-                    val recordedPath = Path()
-                    var lastX = 0f
-                    var lastY = 0f
-
-                    if (recordedPoints.isNotEmpty()) {
-                        recordedPoints.forEachIndexed { index, value ->
-                            val x = index * stepX
-                            val y = height - (value * height).coerceIn(0f, height)
-                            if (index == 0) recordedPath.moveTo(x, y)
-                            else recordedPath.lineTo(x, y)
-                            lastX = x
-                            lastY = y
-                        }
-                        drawPath(
-                            path = recordedPath,
-                            color = BlueRecorded,
-                            style = Stroke(width = 8f, cap = StrokeCap.Round)
-                        )
-
-                        val fillPath = Path().apply {
-                            addPath(recordedPath)
-                            lineTo(lastX, height)
-                            lineTo(0f, height)
-                            close()
-                        }
-                        drawPath(
-                            path = fillPath,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(BlueRecorded.copy(alpha = 0.3f), Color.Transparent),
-                                startY = 0f, endY = height
-                            )
-                        )
-                    }
-
-                    if (predictedPoints.isNotEmpty() && recordedPoints.isNotEmpty()) {
-                        val predictedPath = Path()
-                        predictedPath.moveTo(lastX, lastY)
-
-                        predictedPoints.drop(1).forEachIndexed { index, value ->
-                            val x = lastX + (index + 1) * stepX
-                            val y = height - (value * height).coerceIn(0f, height)
-                            predictedPath.lineTo(x, y)
-                        }
-                        drawPath(
-                            path = predictedPath,
-                            color = OrangePredicted,
-                            style = Stroke(
-                                width = 8f,
-                                cap = StrokeCap.Round,
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
-                            )
-                        )
-                    }
-
-                    drawCircle(color = Color.White, radius = 16f, center = Offset(lastX, lastY))
-                    drawCircle(color = BlueRecorded, radius = 10f, center = Offset(lastX, lastY))
-                }
-
+            
+            Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+                WaterLevelLineChart(uiState)
+                
                 val floodStageY = 180.dp * (1f - uiState.dangerThresholdPercent)
-
                 Text(
-                    text = "Mức Báo Động (${uiState.dangerThreshold}cm)",
+                    text = String.format(Locale.getDefault(), stringResource(R.string.ALARM_LEVEL_FORMAT), uiState.dangerThreshold),
                     color = RedDanger, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .padding(top = floodStageY - 10.dp)
@@ -334,16 +219,157 @@ fun ForecastChartCard(uiState: AnalyticUiState) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Quá khứ", fontSize = 12.sp, color = TextDim)
-                Text(
-                    "Hiện tại",
-                    fontSize = 12.sp,
-                    color = BlueRecorded,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("Dự đoán", fontSize = 12.sp, color = TextDim)
+                Text(stringResource(R.string.PAST), fontSize = 12.sp, color = TextDim)
+                Text(stringResource(R.string.PRESENT), fontSize = 12.sp, color = BlueRecorded, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.FUTURE), fontSize = 12.sp, color = TextDim)
             }
         }
+    }
+}
+
+@Composable
+private fun ChartHeaderInfo(uiState: AnalyticUiState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(stringResource(R.string.water_forecast), color = TextDim, fontSize = 14.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    String.format(Locale.US, "%.1fm", uiState.currentWaterLevel),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = TextWhite
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                val statusColor = if (uiState.isIncreasing) OrangePredicted else BlueRecorded
+                val statusText = getTrendStatusText(uiState.isIncreasing, uiState.isDecreasing)
+                
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(statusColor.copy(alpha = 0.15f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ShowChart,
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(statusText, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(width = 16.dp, height = 3.dp).background(BlueRecorded))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(stringResource(R.string.RECORDED), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextDim)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Canvas(modifier = Modifier.size(width = 16.dp, height = 3.dp)) {
+                    drawLine(
+                        color = OrangePredicted,
+                        start = Offset(0f, size.height / 2),
+                        end = Offset(size.width, size.height / 2),
+                        strokeWidth = 4f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(stringResource(R.string.AI_PREDICTION), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextDim)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WaterLevelLineChart(uiState: AnalyticUiState, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+        val recordedPoints = uiState.recordedPoints
+        val predictedPoints = uiState.predictedPoints
+        val totalPoints = recordedPoints.size + predictedPoints.size - 1
+        val stepX = if (totalPoints > 1) width / (totalPoints - 1) else width
+
+        val floodStageY = height * (1f - uiState.dangerThresholdPercent)
+        drawLine(
+            color = RedDanger.copy(alpha = 0.5f),
+            start = Offset(0f, floodStageY),
+            end = Offset(width, floodStageY),
+            strokeWidth = 2f,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f), 0f)
+        )
+
+        val recordedPath = Path()
+        var lastX = 0f
+        var lastY = 0f
+
+        if (recordedPoints.isNotEmpty()) {
+            recordedPoints.forEachIndexed { index, value ->
+                val x = index * stepX
+                val y = height - (value * height).coerceIn(0f, height)
+                if (index == 0) recordedPath.moveTo(x, y)
+                else recordedPath.lineTo(x, y)
+                lastX = x
+                lastY = y
+            }
+            drawPath(
+                path = recordedPath,
+                color = BlueRecorded,
+                style = Stroke(width = 8f, cap = StrokeCap.Round)
+            )
+
+            val fillPath = Path().apply {
+                addPath(recordedPath)
+                lineTo(lastX, height)
+                lineTo(0f, height)
+                close()
+            }
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(BlueRecorded.copy(alpha = 0.3f), Color.Transparent),
+                    startY = 0f, endY = height
+                )
+            )
+        }
+
+        if (predictedPoints.isNotEmpty() && recordedPoints.isNotEmpty()) {
+            val predictedPath = Path()
+            predictedPath.moveTo(lastX, lastY)
+
+            predictedPoints.drop(1).forEachIndexed { index, value ->
+                val x = lastX + (index + 1) * stepX
+                val y = height - (value * height).coerceIn(0f, height)
+                predictedPath.lineTo(x, y)
+            }
+            drawPath(
+                path = predictedPath,
+                color = OrangePredicted,
+                style = Stroke(
+                    width = 8f,
+                    cap = StrokeCap.Round,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
+                )
+            )
+        }
+
+        drawCircle(color = Color.White, radius = 16f, center = Offset(lastX, lastY))
+        drawCircle(color = BlueRecorded, radius = 10f, center = Offset(lastX, lastY))
     }
 }
 
@@ -357,14 +383,14 @@ fun AiConfidenceSimpleCard() {
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Độ tin cậy của AI", fontWeight = FontWeight.Bold, color = TextWhite)
-                Text("89%", fontWeight = FontWeight.ExtraBold, color = BlueRecorded)
+                Text(stringResource(R.string.AI_CONFIDENCE), fontWeight = FontWeight.Bold, color = TextWhite)
+                Text(MOCK_AI_CONFIDENCE_PERCENT, fontWeight = FontWeight.ExtraBold, color = BlueRecorded)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             LinearProgressIndicator(
-                progress = { 0.89f },
+                progress = { MOCK_AI_CONFIDENCE_FLOAT },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = BlueRecorded,
                 trackColor = Color.White.copy(alpha = 0.2f),
@@ -374,7 +400,7 @@ fun AiConfidenceSimpleCard() {
 }
 
 @Composable
-fun AiPredictionsSection(predictions: List<AiPrediction>) {
+fun AiPredictionsSection(predictions: List<AiPrediction>, selectedTime: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -383,8 +409,10 @@ fun AiPredictionsSection(predictions: List<AiPrediction>) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Dự đoán của AI", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-            Text("12 GIỜ TỚI", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDim)
+            Text(stringResource(R.string.AI_PREDICTIONS_TITLE), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+            
+            val timeText = selectedTime.replace("h", " GIỜ").uppercase(Locale.getDefault())
+            Text(String.format(Locale.getDefault(), stringResource(R.string.HOURS_AHEAD_FORMAT), timeText), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextDim)
         }
 
         Spacer(modifier = Modifier.height(8.dp))

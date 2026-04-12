@@ -2,17 +2,12 @@ package com.example.doantotnghiep.ui.screen
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,21 +26,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.doantotnghiep.DEFAULT_CITY
 import com.example.doantotnghiep.R
-import com.example.doantotnghiep.data.local.StationMapUiModel
+import com.example.doantotnghiep.TRANSITION_DURATION_MS
 import com.example.doantotnghiep.data.local.enum.ScreenRoute
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.ui.dashboard.EnvironmentSection
@@ -53,14 +47,21 @@ import com.example.doantotnghiep.ui.dashboard.HybridBadge
 import com.example.doantotnghiep.ui.dashboard.WaveCard
 import com.example.doantotnghiep.ui.dialog.NoStationDialog
 import com.example.doantotnghiep.ui.dialog.TopToast
-import com.example.doantotnghiep.ui.theme.SoftBgBottom
-import com.example.doantotnghiep.ui.theme.SoftBgTop
+import com.example.doantotnghiep.ui.theme.ErrorBorder
+import com.example.doantotnghiep.ui.theme.ErrorContainer
+import com.example.doantotnghiep.ui.theme.ErrorIcon
+import com.example.doantotnghiep.ui.theme.ErrorIconContainer
+import com.example.doantotnghiep.ui.theme.ErrorMessage
+import com.example.doantotnghiep.ui.theme.ErrorTitle
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
 import com.example.doantotnghiep.ui.viewmodel.MapViewModel
 import com.example.doantotnghiep.ui.viewmodel.WeatherViewModel
+import com.example.doantotnghiep.utils.appBackground
+import com.example.doantotnghiep.utils.homeTransitionSpec
 import com.example.doantotnghiep.utils.toWaveCardUiModel
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.delay
+
+private const val TAG = "HomeScreen"
 
 @Composable
 fun HomeScreen(
@@ -70,16 +71,53 @@ fun HomeScreen(
     userLocation: LatLng? = null,
     onNavigate: (ScreenRoute) -> Unit = {}
 ) {
-    var isApiScreen by remember { mutableStateOf(false) }
+    var isApiScreen by rememberSaveable { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val uiState by homeViewModel.uiState.collectAsState()
+    
+    WeatherLifecycleSync(lifecycleOwner, userLocation, weatherViewModel)
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        ScreenTransitionContent(
+            isApiScreen = isApiScreen,
+            homeViewModel = homeViewModel,
+            mapViewModel = mapViewModel,
+            weatherViewModel = weatherViewModel,
+            userLocation = userLocation,
+            onSwitchToApi = { isApiScreen = true },
+            onNavigate = onNavigate
+        )
 
+        SwitchScreenFab(
+            onClick = { isApiScreen = !isApiScreen },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 120.dp, end = 16.dp)
+        )
+
+        AlertPopups(
+            showRecalibrate = uiState.showRecalibratePopup,
+            showObstruction = uiState.showObstructionPopup,
+            onDismissRecalibrate = { homeViewModel.dismissRecalibratePopup() },
+            onDismissObstruction = { homeViewModel.dismissObstructionPopup() },
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+}
+
+@Composable
+private fun WeatherLifecycleSync(
+    lifecycleOwner: LifecycleOwner,
+    userLocation: LatLng?,
+    weatherViewModel: WeatherViewModel
+) {
     DisposableEffect(lifecycleOwner, userLocation) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val query = if (userLocation != null) {
                     "${userLocation.latitude},${userLocation.longitude}"
                 } else {
-                    "Hanoi"
+                    DEFAULT_CITY
                 }
                 weatherViewModel.fetchWeather(query)
             }
@@ -90,122 +128,94 @@ fun HomeScreen(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+}
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AnimatedContent(
-            targetState = isApiScreen,
-            transitionSpec = {
-                val duration = 800
-                val easing = FastOutSlowInEasing
-
-                if (targetState) {
-                    (scaleIn(
-                        animationSpec = tween(duration, easing = easing),
-                        initialScale = 0.0f,
-                        transformOrigin = TransformOrigin(0.9f, 0.85f)
-                    ) + fadeIn(
-                        animationSpec = tween(duration, easing = easing)
-                    )).togetherWith(
-                        fadeOut(animationSpec = tween(duration / 2, easing = easing))
-                    ).apply {
-                        targetContentZIndex = 1f
-                    }
-                } else {
-                    fadeIn(
-                        animationSpec = tween(duration, easing = easing)
-                    ).togetherWith(
-                        scaleOut(
-                            animationSpec = tween(duration, easing = easing),
-                            targetScale = 0.0f,
-                            transformOrigin = TransformOrigin(0.9f, 0.85f)
-                        ) + fadeOut(
-                            animationSpec = tween(duration, easing = easing)
-                        )
-                    ).apply {
-                        targetContentZIndex = -1f
-                    }
-                }
-            },
-            label = "HomeScreenTransition"
-        ) { targetState ->
-            if (targetState) {
-                WeatherScreen(weatherViewModel)
-            } else {
-                LocalHomeScreen(
-                    homeViewModel = homeViewModel,
-                    mapViewModel = mapViewModel,
-                    userLocation = userLocation,
-                    onSwitchToApi = { isApiScreen = true },
-                    onNavigate = onNavigate
-                )
-            }
+@Composable
+private fun ScreenTransitionContent(
+    isApiScreen: Boolean,
+    homeViewModel: HomeViewModel,
+    mapViewModel: MapViewModel,
+    weatherViewModel: WeatherViewModel,
+    userLocation: LatLng?,
+    onSwitchToApi: () -> Unit,
+    onNavigate: (ScreenRoute) -> Unit
+) {
+    AnimatedContent(
+        targetState = isApiScreen,
+        transitionSpec = { homeTransitionSpec(TRANSITION_DURATION_MS) },
+        label = "HomeScreenTransition"
+    ) { targetState ->
+        if (targetState) {
+            WeatherScreen(weatherViewModel)
+        } else {
+            LocalHomeScreen(
+                homeViewModel = homeViewModel,
+                mapViewModel = mapViewModel,
+                userLocation = userLocation,
+                onSwitchToApi = onSwitchToApi,
+                onNavigate = onNavigate
+            )
         }
+    }
+}
 
-        FloatingActionButton(
-            onClick = { isApiScreen = !isApiScreen },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 120.dp, end = 16.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+@Composable
+private fun SwitchScreenFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    ) {
+        Icon(
+            imageVector = Icons.Default.SwapHoriz,
+            contentDescription = stringResource(R.string.FAB_DESC)
+        )
+    }
+}
+
+@Composable
+private fun AlertPopups(
+    showRecalibrate: Boolean,
+    showObstruction: Boolean,
+    onDismissRecalibrate: () -> Unit,
+    onDismissObstruction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AnimatedVisibility(
+            visible = showRecalibrate,
+            enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
         ) {
-            Icon(
-                imageVector = Icons.Default.SwapHoriz,
-                contentDescription = "Chuyển đổi màn hình"
+            TopToast(
+                title = stringResource(R.string.RECALIBRATE_TITLE),
+                message = stringResource(R.string.RECALIBRATE_DESC),
+                iconRes = R.drawable.ic_water_drop,
+                onClick = onDismissRecalibrate
             )
         }
 
-        val uiState by homeViewModel.uiState.collectAsState()
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        AnimatedVisibility(
+            visible = showObstruction,
+            enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
         ) {
-            AnimatedVisibility(
-                visible = uiState.showRecalibratePopup,
-                enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
-            ) {
-                LaunchedEffect(uiState.showRecalibratePopup) {
-                    if (uiState.showRecalibratePopup) {
-                        delay(5000)
-                        homeViewModel.dismissRecalibratePopup()
-                    }
-                }
-                TopToast(
-                    title = "Yêu cầu đo lại khoảng cách",
-                    message = "Khoảng cách đo được lớn hơn khoảng cách tới đáy (âm). Vui lòng hiệu chuẩn lại trạm.",
-                    iconRes = R.drawable.ic_water_drop,
-                    onClick = { homeViewModel.dismissRecalibratePopup() }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = uiState.showObstructionPopup,
-                enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
-            ) {
-                LaunchedEffect(uiState.showObstructionPopup) {
-                    if (uiState.showObstructionPopup) {
-                        delay(5000)
-                        homeViewModel.dismissObstructionPopup()
-                    }
-                }
-                TopToast(
-                    title = "Phát hiện vật cản",
-                    message = "Mực nước nhảy lên bất thường. Không thể do nước về, vui lòng kiểm tra vật cản dưới cảm biến.",
-                    iconRes = R.drawable.ic_water_drop,
-                    containerColor = Color(0xFFFFEBEE),
-                    borderColor = Color(0xFFF44336),
-                    iconContainerColor = Color(0xFFFFCDD2),
-                    iconColor = Color(0xFFE53935),
-                    titleColor = Color(0xFFB71C1C),
-                    messageColor = Color(0xFFC62828),
-                    onClick = { homeViewModel.dismissObstructionPopup() }
-                )
-            }
+            TopToast(
+                title = stringResource(R.string.OBSTRUCTION_TITLE),
+                message = stringResource(R.string.OBSTRUCTION_DESC),
+                iconRes = R.drawable.ic_water_drop,
+                containerColor = ErrorContainer,
+                borderColor = ErrorBorder,
+                iconContainerColor = ErrorIconContainer,
+                iconColor = ErrorIcon,
+                titleColor = ErrorTitle,
+                messageColor = ErrorMessage,
+                onClick = onDismissObstruction
+            )
         }
     }
 }
@@ -224,16 +234,18 @@ fun LocalHomeScreen(
 
     val blurRadius by animateDpAsState(
         targetValue = if (!uiState.isLocal) 16.dp else 0.dp,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = tween(durationMillis = TRANSITION_DURATION_MS),
         label = "HomeScreenBlurAnimation"
     )
 
-    StationScanningRadar(userLocation, stations, homeViewModel)
+    LaunchedEffect(userLocation, stations) {
+        homeViewModel.updateLocationAndStations(userLocation?.latitude, userLocation?.longitude, stations)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))
+            .appBackground()
     ) {
         Column(
             modifier = Modifier
@@ -255,11 +267,7 @@ fun LocalHomeScreen(
 
                     EnvironmentSection(
                         sensorData = SensorData(
-                            null,
-                            null,
-                            uiState.temperature,
-                            uiState.humidity,
-                            uiState.rainRaw
+                            null, null, uiState.temperature, uiState.humidity, uiState.rainRaw
                         ),
                         onHistoryClick = { onNavigate(ScreenRoute.HISTORY) }
                     )
@@ -276,32 +284,5 @@ fun LocalHomeScreen(
                 }
             )
         }
-    }
-}
-
-@Composable
-fun StationScanningRadar(userLocation: LatLng?, stations: List<StationMapUiModel>, homeViewModel: HomeViewModel) {
-    LaunchedEffect(userLocation, stations) {
-        if (userLocation != null && stations.isNotEmpty()) {
-            homeViewModel.scanAndSyncData(userLocation.latitude, userLocation.longitude, stations)
-        } else if (stations.isNotEmpty()) {
-            // Không có GPS nhưng có trạm -> Tự động load trạm đầu tiên thay vì báo lỗi "mất hết"
-            val defaultStation = stations.first()
-            homeViewModel.scanAndSyncData(
-                defaultStation.stationConfig.latitude ?: 0.0,
-                defaultStation.stationConfig.longitude ?: 0.0,
-                stations
-            )
-        } else if (stations.isEmpty()) {
-            delay(2500)
-            if (homeViewModel.uiState.value.isLocal) {
-                homeViewModel.setLocalMode(false)
-            }
-        }
-    }
-
-    LaunchedEffect(userLocation) {
-        // Xóa logic ép buộc sang màn hình Thời tiết nếu không có userLocation
-        // Việc này gây ra lỗi "trắng màn hình" nếu user bấm "Bỏ qua" ở dialog NoStation.
     }
 }

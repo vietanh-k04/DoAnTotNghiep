@@ -77,5 +77,23 @@ val GlassBg = Color(0x33FFFFFF)
 val TextWhite = Color.White
 val TextDim = Color.White.copy(alpha = 0.7f)
 
+val ErrorContainer = Color(0xFFFFEBEE)
+val ErrorBorder = Color(0xFFF44336)
+val ErrorIconContainer = Color(0xFFFFCDD2)
+val ErrorIcon = Color(0xFFE53935)
+val ErrorTitle = Color(0xFFB71C1C)
+val ErrorMessage = Color(0xFFC62828)
+
+val GoodColor = Color(0xFF4CAF50)
+val WarningColor = Color(0xFFFF9800)
+val DangerColor = Color(0xFFF44336)
+val WaterDropColor = Color(0xFF64B5F6)
+val HumidityColor = Color(0xFF4FC3F7)
+val SunColor = Color(0xFFFFC107)
+val TextDimmer = Color.White.copy(alpha = 0.2f)
+
+val TrendUpColor = Color(0xFFEF4444)
+val TrendDownColor = Color(0xFF10B981)
+
 
 

@@ -1,6 +1,5 @@
 package com.example.doantotnghiep.ui.screen
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,12 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,6 +50,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.remote.AqiData
 import com.example.doantotnghiep.data.remote.AstroData
 import com.example.doantotnghiep.data.remote.DailyWeather
@@ -64,14 +59,30 @@ import com.example.doantotnghiep.data.remote.RunningCondition
 import com.example.doantotnghiep.data.remote.WeatherHeader
 import com.example.doantotnghiep.data.remote.WeatherMetrics
 import com.example.doantotnghiep.data.remote.WeatherUiState
+import com.example.doantotnghiep.ui.theme.DangerColor
 import com.example.doantotnghiep.ui.theme.GlassBg
-import com.example.doantotnghiep.ui.theme.SoftBgBottom
-import com.example.doantotnghiep.ui.theme.SoftBgTop
+import com.example.doantotnghiep.ui.theme.HumidityColor
+import com.example.doantotnghiep.ui.theme.SunColor
 import com.example.doantotnghiep.ui.theme.TextDim
+import com.example.doantotnghiep.ui.theme.TextDimmer
 import com.example.doantotnghiep.ui.theme.TextWhite
+import com.example.doantotnghiep.ui.theme.WaterDropColor
 import com.example.doantotnghiep.ui.viewmodel.WeatherViewModel
+import com.example.doantotnghiep.utils.PressureArcIcon
+import com.example.doantotnghiep.utils.SunPathGraphic
+import com.example.doantotnghiep.utils.WindCompassIcon
+import com.example.doantotnghiep.utils.appBackground
+import com.example.doantotnghiep.utils.cleanLocationName
+import com.example.doantotnghiep.utils.getAqiColor
+import com.example.doantotnghiep.utils.getDewPointSubtitle
+import com.example.doantotnghiep.utils.getHumiditySubtitle
 import com.example.doantotnghiep.utils.getLottieWeatherResource
-import com.example.doantotnghiep.utils.removeAccents
+import com.example.doantotnghiep.utils.getUvColor
+import com.example.doantotnghiep.utils.getUvSubtitle
+import com.example.doantotnghiep.utils.getVisibilitySubtitle
+import java.util.Locale
+
+private const val TAG = "HomeApiScreen"
 
 @Composable
 fun WeatherScreen(weatherViewModel: WeatherViewModel) {
@@ -80,7 +91,7 @@ fun WeatherScreen(weatherViewModel: WeatherViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))
+            .appBackground()
     ) {
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
@@ -89,7 +100,7 @@ fun WeatherScreen(weatherViewModel: WeatherViewModel) {
             is WeatherUiState.Error -> {
                 Text(
                     text = state.message,
-                    color = Color.Red,
+                    color = DangerColor,
                     modifier = Modifier.align(Alignment.Center).padding(16.dp),
                     textAlign = TextAlign.Center
                 )
@@ -134,18 +145,8 @@ fun WeatherHeaderSection(header: WeatherHeader) {
                 )
                 Spacer(modifier = Modifier.width(6.dp))
 
-                val locationName = try {
-                    if (header.locationName.contains("Ã") || header.locationName.contains("Ä")) {
-                        String(header.locationName.toByteArray(Charsets.ISO_8859_1), Charsets.UTF_8).removeAccents()
-                    } else {
-                        header.locationName.removeAccents()
-                    }
-                } catch (_: Exception) {
-                    header.locationName.removeAccents()
-                }
-
                 Text(
-                    locationName,
+                    text = header.locationName.cleanLocationName(),
                     color = TextWhite,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.SemiBold
@@ -156,7 +157,7 @@ fun WeatherHeaderSection(header: WeatherHeader) {
             Text(header.conditionText, color = TextWhite, fontSize = 24.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
             Text("↑${header.highTemp}° / ↓${header.lowTemp}°", color = TextWhite, fontSize = 16.sp)
-            Text("Cảm giác như ${header.feelsLike}°", color = TextDim, fontSize = 16.sp)
+            Text("${stringResource(R.string.FEELS_LIKE)} ${header.feelsLike}°", color = TextDim, fontSize = 16.sp)
         }
 
         IllustrationPlaceholder(header.conditionIconUrl)
@@ -197,12 +198,12 @@ fun HourlyForecastSection(hourlyForecast: List<HourlyWeather>, lowTemp: Int, hig
     GlassCard {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Nhiệt độ từ $lowTemp độ C đến $highTemp độ C",
+                text = String.format(Locale.getDefault(), stringResource(R.string.HOURLY_TEMP_RANGE), lowTemp, highTemp),
                 color = TextWhite,
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(Modifier, thickness = 1.dp, color = TextDim.copy(alpha = 0.2f))
+            HorizontalDivider(Modifier, thickness = 1.dp, color = TextDimmer)
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -223,7 +224,7 @@ fun HourlyForecastSection(hourlyForecast: List<HourlyWeather>, lowTemp: Int, hig
                             Icon(
                                 Icons.Default.WaterDrop,
                                 contentDescription = null,
-                                tint = Color(0xFF64B5F6),
+                                tint = WaterDropColor,
                                 modifier = Modifier.size(10.dp)
                             )
                             Text("${item.chanceOfRain}%", color = TextDim, fontSize = 10.sp)
@@ -252,9 +253,9 @@ fun DailyForecastSection(dailyForecast: List<DailyWeather>) {
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Dự báo ${dailyForecast.size} ngày", color = TextDim, fontSize = 14.sp)
+                Text(String.format(Locale.getDefault(), stringResource(R.string.DAILY_FORECAST), dailyForecast.size), color = TextDim, fontSize = 14.sp)
             }
-            HorizontalDivider(Modifier, thickness = 1.dp, color = TextDim.copy(alpha = 0.2f))
+            HorizontalDivider(Modifier, thickness = 1.dp, color = TextDimmer)
 
             dailyForecast.forEach { item ->
                 Row(
@@ -274,7 +275,7 @@ fun DailyForecastSection(dailyForecast: List<DailyWeather>) {
                         Icon(
                             Icons.Default.WaterDrop,
                             contentDescription = null,
-                            tint = Color(0xFF64B5F6),
+                            tint = WaterDropColor,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
@@ -305,7 +306,7 @@ fun DailyForecastSection(dailyForecast: List<DailyWeather>) {
 fun ActivityRunningSection(runningCondition: RunningCondition) {
     GlassCard {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Chạy bộ", color = TextDim, fontSize = 14.sp)
+            Text(stringResource(R.string.RUNNING), color = TextDim, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -328,7 +329,7 @@ fun ActivityRunningSection(runningCondition: RunningCondition) {
 fun AqiSection(aqi: AqiData) {
     GlassCard {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("AQI", color = TextDim, fontSize = 12.sp)
+            Text(stringResource(R.string.AQI), color = TextDim, fontSize = 12.sp)
             Text(
                 aqi.status,
                 color = TextWhite,
@@ -342,8 +343,8 @@ fun AqiSection(aqi: AqiData) {
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(CircleShape),
-                color = if (aqi.aqiIndex <= 2) Color.Green else if (aqi.aqiIndex <= 4) Color(0xFFFF9800) else Color.Red,
-                trackColor = Color.White.copy(alpha = 0.2f)
+                color = getAqiColor(aqi.aqiIndex),
+                trackColor = TextDimmer
             )
         }
     }
@@ -355,9 +356,9 @@ fun WeatherGridSection(metrics: WeatherMetrics) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             GridMetricCard(
                 modifier = Modifier.weight(1f),
-                title = "Chỉ số UV",
+                title = stringResource(R.string.UV_INDEX),
                 value = metrics.uvIndex.toString(),
-                subtitle = if (metrics.uvIndex >= 6f) "Mức độ cao" else if (metrics.uvIndex >= 3f) "Mức trung bình" else "Mức độ thấp",
+                subtitle = getUvSubtitle(metrics.uvIndex),
                 icon = Icons.Default.WbSunny
             ) {
                 LinearProgressIndicator(
@@ -366,15 +367,15 @@ fun WeatherGridSection(metrics: WeatherMetrics) {
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(CircleShape),
-                    color = if (metrics.uvIndex >= 6f) Color.Red else if (metrics.uvIndex >= 3f) Color(0xFFFF9800) else Color.Green,
-                    trackColor = Color.White.copy(0.2f)
+                    color = getUvColor(metrics.uvIndex),
+                    trackColor = TextDimmer
                 )
             }
             GridMetricCard(
                 modifier = Modifier.weight(1f),
-                title = "Độ ẩm",
+                title = stringResource(R.string.HUMIDITY),
                 value = "${metrics.humidity}%",
-                subtitle = if (metrics.humidity >= 70) "Mức ẩm cao, oi bức" else if (metrics.humidity >= 40) "Mức độ thoải mái" else "Không khí hanh khô",
+                subtitle = getHumiditySubtitle(metrics.humidity),
                 icon = Icons.Default.WaterDrop
             ) {
                 LinearProgressIndicator(
@@ -383,73 +384,55 @@ fun WeatherGridSection(metrics: WeatherMetrics) {
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(CircleShape),
-                    color = Color(0xFF4FC3F7),
-                    trackColor = Color.White.copy(0.2f)
+                    color = HumidityColor,
+                    trackColor = TextDimmer
                 )
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             GridMetricCard(
                 modifier = Modifier.weight(1f),
-                title = "Gió",
+                title = stringResource(R.string.WIND),
                 value = "${metrics.windKph} km/h",
-                subtitle = "Hướng: ${metrics.windDirection}",
+                subtitle = "${stringResource(R.string.WIND_DIR)} ${metrics.windDirection}",
                 icon = Icons.Default.Air
             ) {
-                Canvas(
+                WindCompassIcon(
                     modifier = Modifier
                         .size(40.dp)
-                        .align(Alignment.CenterHorizontally)
-                ) {
-                    drawCircle(color = TextWhite.copy(0.2f), style = Stroke(width = 4f))
-                    drawCircle(
-                        color = TextWhite, radius = 4f, center = Offset(size.width / 2, 4f)
-                    )
-                }
+                        .align(Alignment.CenterHorizontally),
+                    iconColor = TextWhite
+                )
             }
             GridMetricCard(
                 modifier = Modifier.weight(1f),
-                title = "Điểm sương",
+                title = stringResource(R.string.DEW_POINT),
                 value = "${metrics.dewPoint}°",
-                subtitle = if (metrics.dewPoint > 20) "Cảm giác ngột ngạt" else "Khô ráo, thoải mái",
+                subtitle = getDewPointSubtitle(metrics.dewPoint),
                 icon = Icons.Default.Thermostat
             ) {}
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             GridMetricCard(
                 modifier = Modifier.weight(1f),
-                title = "Áp suất",
+                title = stringResource(R.string.PRESSURE),
                 value = "${metrics.pressureMb} mb",
-                subtitle = "Mức tiêu chuẩn",
+                subtitle = stringResource(R.string.PRESSURE_STANDARD),
                 icon = Icons.Default.Speed
             ) {
-                Canvas(
+                PressureArcIcon(
                     modifier = Modifier
                         .size(40.dp)
-                        .align(Alignment.CenterHorizontally)
-                ) {
-                    drawArc(
-                        color = TextWhite.copy(0.2f),
-                        startAngle = 135f,
-                        sweepAngle = 270f,
-                        useCenter = false,
-                        style = Stroke(width = 6f, cap = StrokeCap.Round)
-                    )
-                    val sweep = ((metrics.pressureMb - 950f) / 100f).coerceIn(0f, 1f) * 270f
-                    drawArc(
-                        color = TextWhite,
-                        startAngle = 135f,
-                        sweepAngle = if (sweep > 0) sweep else 100f,
-                        useCenter = false,
-                        style = Stroke(width = 6f, cap = StrokeCap.Round)
-                    )
-                }
+                        .align(Alignment.CenterHorizontally),
+                    pressureMb = metrics.pressureMb,
+                    iconColor = TextWhite
+                )
             }
             GridMetricCard(
                 modifier = Modifier.weight(1f),
-                title = "Tầm nhìn",
+                title = stringResource(R.string.VISIBILITY),
                 value = "${metrics.visibilityKm} km",
-                subtitle = if (metrics.visibilityKm >= 10) "Trời quang, tầm nhìn tốt" else "Tầm nhìn hạn chế",
+                subtitle = getVisibilitySubtitle(metrics.visibilityKm),
                 icon = Icons.Default.Visibility
             ) {}
         }
@@ -506,30 +489,23 @@ fun SunAndMoonSection(astro: AstroData) {
                     .fillMaxWidth()
                     .height(80.dp)
             ) {
-                Canvas(
+                SunPathGraphic(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 20.dp)
-                ) {
-                    val path = Path().apply {
-                        moveTo(0f, size.height)
-                        quadraticTo(size.width / 2, -size.height, size.width, size.height)
-                    }
-                    drawPath(path, color = TextWhite.copy(0.3f), style = Stroke(width = 4f))
-                    drawCircle(
-                        color = Color(0xFFFFC107), radius = 12f, center = Offset(size.width / 2, 0f)
-                    )
-                }
+                        .padding(top = 20.dp),
+                    pathColor = TextWhite.copy(0.3f),
+                    sunColor = SunColor
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Bình minh", color = TextDim, fontSize = 12.sp)
+                    Text(stringResource(R.string.SUNRISE), color = TextDim, fontSize = 12.sp)
                     Text(astro.sunrise, color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Hoàng hôn", color = TextDim, fontSize = 12.sp)
+                    Text(stringResource(R.string.SUNSET), color = TextDim, fontSize = 12.sp)
                     Text(astro.sunset, color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
             }
@@ -552,10 +528,10 @@ fun SunAndMoonSection(astro: AstroData) {
                     .weight(1f)
             )
             Column(modifier = Modifier.weight(2f)) {
-                Text("Mặt trăng mọc", color = TextDim, fontSize = 12.sp)
+                Text(stringResource(R.string.MOONRISE), color = TextDim, fontSize = 12.sp)
                 Text(astro.moonrise, color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Mặt trăng lặn", color = TextDim, fontSize = 12.sp)
+                Text(stringResource(R.string.MOONSET), color = TextDim, fontSize = 12.sp)
                 Text(astro.moonset, color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
         }

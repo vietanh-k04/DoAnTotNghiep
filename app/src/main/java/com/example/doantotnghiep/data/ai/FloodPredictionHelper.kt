@@ -7,6 +7,8 @@ import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions
 import com.google.firebase.ml.modeldownloader.DownloadType
 import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 
@@ -19,6 +21,7 @@ class FloodPredictionHelper(private val context: Context) {
     private val FEET_TO_CM = 30.48f
 
     private var interpreter: Interpreter? = null
+    private val mutex = Mutex()
 
     fun initializeModel(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val conditions = CustomModelDownloadConditions.Builder()
@@ -70,7 +73,9 @@ class FloodPredictionHelper(private val context: Context) {
 
             val outputArray = Array(1) { FloatArray(1) }
 
-            interpreter?.run(inputArray, outputArray)
+            mutex.withLock {
+                interpreter?.run(inputArray, outputArray)
+            }
 
             val tfliteRawOutput = outputArray[0][0]
 

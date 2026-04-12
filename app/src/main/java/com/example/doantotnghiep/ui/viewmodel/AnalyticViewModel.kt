@@ -28,6 +28,7 @@ import kotlin.math.sin
 data class AnalyticUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
+    val isStationActive: Boolean = true,
     val currentWaterLevel: Float = 0f,
     val isIncreasing: Boolean = false,
     val isDecreasing: Boolean = false,
@@ -147,6 +148,9 @@ class AnalyticViewModel @Inject constructor(
                 val rawLast = lastRecord.timestamp ?: System.currentTimeMillis()
                 val lastTimestamp = if (rawLast < 10000000000L) rawLast * 1000 else rawLast
                 
+                // Trạm coi như không hoạt động nếu bản ghi cuối cùng cách đây quá 1 giờ
+                val isStationActive = (System.currentTimeMillis() - lastTimestamp) <= 3600_000L
+                
                 val pointsToPredict = when (_uiState.value.selectedTime) {
                     "1h" -> 12 
                     "6h" -> 72  
@@ -191,6 +195,7 @@ class AnalyticViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isStationActive = isStationActive,
                         currentWaterLevel = currentLevelCm,
                         isIncreasing = isIncreasing,
                         isDecreasing = isDecreasing,

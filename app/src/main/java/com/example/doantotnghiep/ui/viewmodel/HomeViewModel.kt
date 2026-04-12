@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.RADIUS_LIMIT
 import com.example.doantotnghiep.data.local.StationMapUiModel
+import com.example.doantotnghiep.data.local.enum.WaterLevelState
 import com.example.doantotnghiep.data.local.state.HomeUiState
 import com.example.doantotnghiep.data.remote.NotificationLog
 import com.example.doantotnghiep.data.remote.SensorData
@@ -13,6 +14,7 @@ import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.notification.NotificationHelper
 import com.example.doantotnghiep.utils.LocationUtils
+import com.example.doantotnghiep.utils.WaterLevelValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -57,6 +59,26 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
         repository.syncNotificationLogs()
         viewModelScope.launch {
             repository.getNotificationLogs().collect { _notifications.value = it }
+        }
+    }
+
+    fun updateLocationAndStations(userLat: Double?, userLng: Double?, stations: List<StationMapUiModel>) {
+        viewModelScope.launch {
+            if (userLat != null && userLng != null && stations.isNotEmpty()) {
+                scanAndSyncData(userLat, userLng, stations)
+            } else if (stations.isNotEmpty()) {
+                val defaultStation = stations.first()
+                scanAndSyncData(
+                    defaultStation.stationConfig.latitude ?: 0.0,
+                    defaultStation.stationConfig.longitude ?: 0.0,
+                    stations
+                )
+            } else {
+                kotlinx.coroutines.delay(2500L)
+                if (_uiState.value.isLocal) {
+                    setLocalMode(false)
+                }
+            }
         }
     }
 
@@ -121,26 +143,34 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
                 val currentLevel = calculateWaterLevel(sensorData, config)
 
                 var isInvalid = false
-                val validationState = com.example.doantotnghiep.utils.WaterLevelValidator.validate(rawWaterLevel, lastWaterLevel)
+                val validationState = WaterLevelValidator.validate(rawWaterLevel, lastWaterLevel)
 
                 when (validationState) {
-                    com.example.doantotnghiep.utils.WaterLevelState.ERROR_NEGATIVE -> {
+                    WaterLevelState.ERROR_NEGATIVE -> {
                         isInvalid = true
                         if (!hasAlertedRecalibration) {
                             _uiState.update { it.copy(showRecalibratePopup = true) }
                             hasAlertedRecalibration = true
+                            viewModelScope.launch {
+                                kotlinx.coroutines.delay(5000L)
+                                dismissRecalibratePopup()
+                            }
                         }
                     }
-                    com.example.doantotnghiep.utils.WaterLevelState.ERROR_OBSTRUCTION -> {
+                    WaterLevelState.ERROR_OBSTRUCTION -> {
                         isInvalid = true
                         if (!hasAlertedObstruction) {
                             _uiState.update { it.copy(showObstructionPopup = true) }
                             hasAlertedObstruction = true
+                            viewModelScope.launch {
+                                kotlinx.coroutines.delay(5000L)
+                                dismissObstructionPopup()
+                            }
                         }
                     }
-                    com.example.doantotnghiep.utils.WaterLevelState.VALID -> {
+                    WaterLevelState.VALID -> {
                         hasAlertedRecalibration = false
-                        if (com.example.doantotnghiep.utils.WaterLevelValidator.isStabilized(rawWaterLevel, lastWaterLevel)) {
+                        if (WaterLevelValidator.isStabilized(rawWaterLevel, lastWaterLevel)) {
                             hasAlertedObstruction = false
                         }
                     }
@@ -213,11 +243,8 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
             return R.string.dashboard_stable
         }
 
-        // Sử dụng EMA (Exponential Moving Average) để theo dõi xu hướng tức thời
-        // alpha = 0.25 giúp làm mượt các dao động nhỏ, phản ứng nhanh với test kéo trượt liên tục
         smoothedLevel = 0.25 * currentLevel + 0.75 * smoothedLevel
 
-        // Tính độ lệch giữa mức nước thật hiện tại và đường trung bình
         val diff = currentLevel - smoothedLevel
 
         return when {

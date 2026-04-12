@@ -7,17 +7,29 @@ import android.location.Location
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingFlat
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import com.example.doantotnghiep.R
+import com.example.doantotnghiep.data.local.enum.WaterLevelState
 import com.example.doantotnghiep.data.local.state.LocationState
+import com.example.doantotnghiep.ui.theme.StatusDanger
+import com.example.doantotnghiep.ui.theme.TrendDownColor
+import com.example.doantotnghiep.ui.theme.TrendUpColor
+import com.example.doantotnghiep.ui.theme.WaterBlue
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
@@ -168,12 +180,6 @@ fun rememberLocationState(): LocationState {
     )
 }
 
-enum class WaterLevelState {
-    VALID,
-    ERROR_NEGATIVE,
-    ERROR_OBSTRUCTION
-}
-
 object WaterLevelValidator {
     fun validate(currentLevel: Double, lastValidLevel: Double): WaterLevelState {
         if (currentLevel < -3) return WaterLevelState.ERROR_NEGATIVE
@@ -183,5 +189,31 @@ object WaterLevelValidator {
 
     fun isStabilized(currentLevel: Double, lastValidLevel: Double): Boolean {
         return lastValidLevel >= 0.0 && kotlin.math.abs(currentLevel - lastValidLevel) < 5.0
+    }
+}
+
+@Composable
+fun getTrendStatusText(isIncreasing: Boolean, isDecreasing: Boolean) = when {
+    isIncreasing -> stringResource(R.string.TREND_INCREASING)
+    isDecreasing -> stringResource(R.string.TREND_DECREASING)
+    else -> stringResource(R.string.TREND_STABLE)
+}
+
+@Composable
+fun getTrendInfo(
+    latestWaterLevel: Int?,
+    previousWaterLevel: Int?,
+    isInactive: Boolean
+): Triple<String, Color, ImageVector> {
+    return when {
+        isInactive -> Triple(stringResource(R.string.INACTIVE), StatusDanger, Icons.Default.WarningAmber)
+        latestWaterLevel != null && previousWaterLevel != null -> {
+            when {
+                latestWaterLevel > previousWaterLevel -> Triple(stringResource(R.string.TREND_UP), TrendUpColor, Icons.AutoMirrored.Rounded.TrendingUp)
+                latestWaterLevel < previousWaterLevel -> Triple(stringResource(R.string.TREND_DOWN), TrendDownColor, Icons.AutoMirrored.Rounded.TrendingDown)
+                else -> Triple(stringResource(R.string.TREND_STABLE), WaterBlue, Icons.AutoMirrored.Rounded.TrendingFlat)
+            }
+        }
+        else -> Triple(stringResource(R.string.LATEST), TrendDownColor, Icons.AutoMirrored.Rounded.TrendingFlat)
     }
 }

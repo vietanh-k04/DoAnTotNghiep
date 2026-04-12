@@ -75,6 +75,10 @@ fun MainLayout(modifier: Modifier = Modifier) {
                     ScreenRoute.MAP -> MapScreenWrapper(
                         locationState = locationState,
                         viewModel = mapViewModel,
+                        onNavigateToHistory = { stationConfig ->
+                            historyViewModel.selectStation(stationConfig)
+                            currentScreen = ScreenRoute.HISTORY
+                        }
                     )
                     ScreenRoute.ANALYTIC -> AnalyticScreen()
                     ScreenRoute.HISTORY -> HistoryScreen(viewModel = historyViewModel)

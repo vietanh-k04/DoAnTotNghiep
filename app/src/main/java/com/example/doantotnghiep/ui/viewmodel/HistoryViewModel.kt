@@ -59,7 +59,8 @@ class HistoryViewModel @Inject constructor(
             "12 Giờ" -> 12L * 60 * 60 * 1000
             else -> 1L * 60 * 60 * 1000
         }
-        val cutoffTime = currentTime - timeDiff
+        val latestLogTime = logs.maxOfOrNull { it.timestamp } ?: currentTime
+        val cutoffTime = latestLogTime - timeDiff
 
         // Filter logs by cutoff time
         val filteredLogs = logs.filter { it.timestamp >= cutoffTime }

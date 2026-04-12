@@ -49,7 +49,7 @@ import com.example.doantotnghiep.utils.statusIcon
 import com.example.doantotnghiep.utils.statusText
 
 @Composable
-fun StationDetailContent(station: StationMapUiModel, onSettingClick: () -> Unit) {
+fun StationDetailContent(station: StationMapUiModel, onSettingClick: () -> Unit, onHistoryClick: () -> Unit) {
     val statusColor = statusColor(station.status)
     val rainInfor = getRainStatus(station.sensorData.rainVal ?: 0)
 
@@ -121,7 +121,7 @@ fun StationDetailContent(station: StationMapUiModel, onSettingClick: () -> Unit)
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = {},
+                onClick = onHistoryClick,
                 modifier = Modifier.weight(1f).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = WaterBlue),
                 shape = RoundedCornerShape(16.dp),

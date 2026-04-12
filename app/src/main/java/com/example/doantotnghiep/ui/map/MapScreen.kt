@@ -1,7 +1,6 @@
 package com.example.doantotnghiep.ui.map
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +27,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
@@ -43,8 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.StationMapUiModel
+import com.example.doantotnghiep.data.local.enum.Status
 import com.example.doantotnghiep.ui.dialog.PasswordDialog
 import com.example.doantotnghiep.ui.dialog.StationSettingDialog
 import com.example.doantotnghiep.ui.theme.DarkGunmetal
@@ -61,6 +60,7 @@ import com.example.doantotnghiep.ui.theme.NavyGray
 import com.example.doantotnghiep.ui.theme.OffWhite
 import com.example.doantotnghiep.ui.theme.SoftBgBottom
 import com.example.doantotnghiep.ui.theme.SoftBgTop
+import com.example.doantotnghiep.utils.MiniTrendChart
 import com.example.doantotnghiep.utils.statusColor
 import com.example.doantotnghiep.utils.statusText
 import com.example.doantotnghiep.utils.trendColor
@@ -76,47 +76,107 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
+private const val TAG = "MapScreen"
+
+object MapDefaults {
+    val HANOI_LOCATION = LatLng(21.0285, 105.8246)
+    const val DEFAULT_ZOOM = 11f
+    const val FOCUS_ZOOM = 14f
+    const val DOUBLE_CLICK_ZOOM = 15f
+    const val ANIM_DURATION_MS = 1500
+    const val LONG_ANIM_DURATION_MS = 2000
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     stations: List<StationMapUiModel>,
     isLocationGranted: Boolean,
     userLocation: LatLng?,
-    onUpdateStationConfig: (String, String, Int, Double, Double, Double?, Double?, (Boolean) -> Unit) -> Unit = { _, _, _, _, _, _, _, _ -> }
+    onUpdateStationConfig: (String, String, Int, Double, Double, Double?, Double?, (Boolean) -> Unit) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onHistoryClick: (StationMapUiModel) -> Unit = {}
 ) {
     var selectedStation by remember { mutableStateOf<StationMapUiModel?>(null) }
-
     var showPasswordPrompt by remember { mutableStateOf(false) }
-
     var showSettingsSheet by remember { mutableStateOf(false) }
-
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    val defaultLocation = LatLng(21.0285, 105.8246)
-
-    val coroutineScope = rememberCoroutineScope()
-
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultLocation, 11f)
-    }
-
-    var hasMovedToUserLocation by remember { mutableStateOf(false) }
-
-    LaunchedEffect(userLocation) {
-        if (userLocation != null && !hasMovedToUserLocation) {
-            cameraPositionState.animate(
-                update = CameraUpdateFactory.newLatLngZoom(userLocation, 14f),
-                durationMs = 1500
-            )
-            hasMovedToUserLocation = true
-        }
-    }
+    var hasMovedToInitialLocation by remember { mutableStateOf(false) }
 
     LaunchedEffect(stations) {
         selectedStation?.let { currentStation ->
             val freshStation = stations.find { it.stationConfig.id == currentStation.stationConfig.id }
             if (freshStation != null) {
                 selectedStation = freshStation
+            }
+        }
+    }
+
+    MapContent(
+        stations = stations,
+        isLocationGranted = isLocationGranted,
+        userLocation = userLocation,
+        selectedStation = selectedStation,
+        showPasswordPrompt = showPasswordPrompt,
+        showSettingsSheet = showSettingsSheet,
+        hasMovedToInitialLocation = hasMovedToInitialLocation,
+        onStationSelected = { selectedStation = it },
+        onPasswordPromptChange = { showPasswordPrompt = it },
+        onSettingsSheetChange = { showSettingsSheet = it },
+        onInitialLocationMoved = { hasMovedToInitialLocation = true },
+        onUpdateStationConfig = onUpdateStationConfig,
+        onHistoryClick = onHistoryClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MapContent(
+    stations: List<StationMapUiModel>,
+    isLocationGranted: Boolean,
+    userLocation: LatLng?,
+    selectedStation: StationMapUiModel?,
+    showPasswordPrompt: Boolean,
+    showSettingsSheet: Boolean,
+    hasMovedToInitialLocation: Boolean,
+    onStationSelected: (StationMapUiModel?) -> Unit,
+    onPasswordPromptChange: (Boolean) -> Unit,
+    onSettingsSheetChange: (Boolean) -> Unit,
+    onInitialLocationMoved: () -> Unit,
+    onUpdateStationConfig: (String, String, Int, Double, Double, Double?, Double?, (Boolean) -> Unit) -> Unit,
+    onHistoryClick: (StationMapUiModel) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+
+    val defaultLocation = remember(userLocation, stations) {
+        userLocation ?: stations.firstOrNull()?.let {
+            LatLng(it.stationConfig.latitude ?: MapDefaults.HANOI_LOCATION.latitude, 
+                   it.stationConfig.longitude ?: MapDefaults.HANOI_LOCATION.longitude)
+        } ?: MapDefaults.HANOI_LOCATION
+    }
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(defaultLocation, MapDefaults.DEFAULT_ZOOM)
+    }
+
+    LaunchedEffect(userLocation, stations) {
+        if (!hasMovedToInitialLocation) {
+            if (userLocation != null) {
+                cameraPositionState.animate(
+                    update = CameraUpdateFactory.newLatLngZoom(userLocation, MapDefaults.FOCUS_ZOOM),
+                    durationMs = MapDefaults.ANIM_DURATION_MS
+                )
+                onInitialLocationMoved()
+            } else if (stations.isNotEmpty()) {
+                val firstStation = stations.first()
+                val targetLat = firstStation.stationConfig.latitude
+                val targetLng = firstStation.stationConfig.longitude
+                if (targetLat != null && targetLng != null && targetLat != 0.0 && targetLng != 0.0) {
+                    cameraPositionState.animate(
+                        update = CameraUpdateFactory.newLatLngZoom(LatLng(targetLat, targetLng), MapDefaults.FOCUS_ZOOM),
+                        durationMs = MapDefaults.ANIM_DURATION_MS
+                    )
+                    onInitialLocationMoved()
+                }
             }
         }
     }
@@ -131,17 +191,14 @@ fun MapScreen(
             Box(modifier = Modifier.fillMaxHeight(0.5f)) {
                 StationListContent(
                     stations = stations,
-                    onStationSingleClicked = { station ->
-                        selectedStation = station
-                    },
+                    onStationSingleClicked = { onStationSelected(it) },
                     onStationDoubleClicked = { station ->
                         if(station.stationConfig.latitude != 0.0 && station.stationConfig.longitude != 0.0) {
                             val targetLatLng = LatLng(station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0)
-
                             coroutineScope.launch {
                                 cameraPositionState.animate(
-                                    update = CameraUpdateFactory.newLatLngZoom(targetLatLng, 15f),
-                                    durationMs = 2000
+                                    update = CameraUpdateFactory.newLatLngZoom(targetLatLng, MapDefaults.DOUBLE_CLICK_ZOOM),
+                                    durationMs = MapDefaults.LONG_ANIM_DURATION_MS
                                 )
                             }
                         }
@@ -174,82 +231,122 @@ fun MapScreen(
         }
     }
 
-    if(selectedStation != null && !showPasswordPrompt && !showSettingsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {selectedStation = null},
+    if (selectedStation != null && !showPasswordPrompt && !showSettingsSheet) {
+        MapStationDetailsSheet(
+            station = selectedStation,
             sheetState = sheetState,
-            containerColor = Color.Transparent,
-            dragHandle = null
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)),
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                    )
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(32.dp)
-                            .height(4.dp)
-                            .background(Color.White.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
-                    )
-                    StationDetailContent(station = selectedStation!!, onSettingClick = {
-                        showPasswordPrompt = true
-                    })
-                }
-            }
-        }
+            onDismiss = { onStationSelected(null) },
+            onSettingClick = { onPasswordPromptChange(true) },
+            onHistoryClick = { onHistoryClick(selectedStation) }
+        )
     }
 
     if (showPasswordPrompt && selectedStation != null) {
-        Dialog(onDismissRequest = { showPasswordPrompt = false }) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color.Transparent
-            ) {
-                Box(modifier = Modifier.background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))) {
-                    PasswordDialog(
-                        onDismiss = { showPasswordPrompt = false },
-                        correctHash = selectedStation!!.stationConfig.deviceKey ?: "",
-                        onVerifySuccess = {
-                            showPasswordPrompt = false
-                            showSettingsSheet = true
-                        }
-                    )
-                }
+        MapPasswordDialogWrapper(
+            correctHash = selectedStation.stationConfig.deviceKey ?: "",
+            onDismiss = { onPasswordPromptChange(false) },
+            onSuccess = {
+                onPasswordPromptChange(false)
+                onSettingsSheetChange(true)
             }
-        }
+        )
     }
 
     if (showSettingsSheet && selectedStation != null) {
-        Dialog(onDismissRequest = { showSettingsSheet = false }) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color.Transparent
-            ) {
-                Box(modifier = Modifier.background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))) {
-                    StationSettingDialog(
-                        station = selectedStation!!,
-                        onDismiss = { showSettingsSheet = false },
-                        onSave = { newName, newOffset, newWarning, newDanger, newLat, newLng, onComplete ->
-                            onUpdateStationConfig(
-                                selectedStation!!.stationConfig.id ?: "",
-                                newName,
-                                newOffset.toInt(),
-                                newWarning.toDouble(),
-                                newDanger.toDouble(),
-                                newLat,
-                                newLng,
-                                onComplete
-                            )
-                        },
-                        onRequestOffsetUpdate = {}
-                    )
-                }
+        MapSettingsDialogWrapper(
+            station = selectedStation,
+            onDismiss = { onSettingsSheetChange(false) },
+            onSave = { newName, newOffset, newWarning, newDanger, newLat, newLng, onComplete ->
+                onUpdateStationConfig(
+                    selectedStation.stationConfig.id ?: "",
+                    newName, newOffset.toInt(), newWarning.toDouble(), newDanger.toDouble(), newLat, newLng, onComplete
+                )
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MapStationDetailsSheet(
+    station: StationMapUiModel,
+    sheetState: SheetState,
+    onDismiss: () -> Unit,
+    onSettingClick: () -> Unit,
+    onHistoryClick: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.Transparent,
+        dragHandle = null
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                )
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .width(32.dp)
+                        .height(4.dp)
+                        .background(Color.White.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                )
+                StationDetailContent(
+                    station = station, 
+                    onSettingClick = onSettingClick,
+                    onHistoryClick = onHistoryClick
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapPasswordDialogWrapper(
+    correctHash: String,
+    onDismiss: () -> Unit,
+    onSuccess: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.Transparent
+        ) {
+            Box(modifier = Modifier.background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))) {
+                PasswordDialog(
+                    onDismiss = onDismiss,
+                    correctHash = correctHash,
+                    onVerifySuccess = onSuccess
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapSettingsDialogWrapper(
+    station: StationMapUiModel,
+    onDismiss: () -> Unit,
+    onSave: (String, Float, Float, Float, Double?, Double?, (Boolean) -> Unit) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.Transparent
+        ) {
+            Box(modifier = Modifier.background(Brush.verticalGradient(listOf(SoftBgTop, SoftBgBottom)))) {
+                StationSettingDialog(
+                    station = station,
+                    onDismiss = onDismiss,
+                    onSave = onSave,
+                    onRequestOffsetUpdate = {}
+                )
             }
         }
     }
@@ -348,34 +445,15 @@ fun StationMapItemCard(station: StationMapUiModel, onSingleClick: () -> Unit?, o
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column {
                     Text(stringResource(R.string.map_1h_trend), color = Color.Gray, fontSize = 12.sp)
-                    val trendText = trendText(station.trendValue)
-                    val trendColor = trendColor(station.trendValue)
-                    Text(trendText, color = trendColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    val trendTextStr = if (station.status == Status.OFFLINE) "Ngưng hoạt động" else trendText(station.trendValue)
+                    val trendColorStr = if (station.status == Status.OFFLINE) Color.Gray else trendColor(station.trendValue)
+                    Text(trendTextStr, color = trendColorStr, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
 
-                MiniTrendChart(trendColor = statusColor)
+                val trendChartColor = if (station.status == Status.OFFLINE) Color.Gray else trendColor(station.trendValue)
+                MiniTrendChart(trendColor = trendChartColor, points = if (station.status == Status.OFFLINE) emptyList() else station.trendPoints)
             }
         }
     }
 }
 
-@Composable
-fun MiniTrendChart(trendColor: Color) {
-    Canvas(modifier = Modifier.width(60.dp).height(20.dp)) {
-        val path = Path().apply {
-            moveTo(0f, size.height)
-            lineTo(size.width, 0f)
-        }
-
-        drawPath(path = path, color = trendColor, style = Stroke(width = 3f))
-
-        val fillPath = Path().apply {
-            addPath(path)
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
-
-        drawPath(fillPath, brush = Brush.verticalGradient(listOf(trendColor.copy(alpha = 0.3f), Color.Transparent)))
-    }
-}
