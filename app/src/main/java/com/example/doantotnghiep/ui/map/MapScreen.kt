@@ -49,6 +49,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.doantotnghiep.ANIM_DURATION_MS
+import com.example.doantotnghiep.DEFAULT_ZOOM
+import com.example.doantotnghiep.DOUBLE_CLICK_ZOOM
+import com.example.doantotnghiep.FOCUS_ZOOM
+import com.example.doantotnghiep.HANOI_LOCATION
+import com.example.doantotnghiep.LONG_ANIM_DURATION_MS
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.StationMapUiModel
 import com.example.doantotnghiep.data.local.enum.Status
@@ -77,15 +83,6 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
 private const val TAG = "MapScreen"
-
-object MapDefaults {
-    val HANOI_LOCATION = LatLng(21.0285, 105.8246)
-    const val DEFAULT_ZOOM = 11f
-    const val FOCUS_ZOOM = 14f
-    const val DOUBLE_CLICK_ZOOM = 15f
-    const val ANIM_DURATION_MS = 1500
-    const val LONG_ANIM_DURATION_MS = 2000
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,21 +146,21 @@ private fun MapContent(
 
     val defaultLocation = remember(userLocation, stations) {
         userLocation ?: stations.firstOrNull()?.let {
-            LatLng(it.stationConfig.latitude ?: MapDefaults.HANOI_LOCATION.latitude, 
-                   it.stationConfig.longitude ?: MapDefaults.HANOI_LOCATION.longitude)
-        } ?: MapDefaults.HANOI_LOCATION
+            LatLng(it.stationConfig.latitude ?: HANOI_LOCATION.latitude,
+                   it.stationConfig.longitude ?: HANOI_LOCATION.longitude)
+        } ?: HANOI_LOCATION
     }
 
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultLocation, MapDefaults.DEFAULT_ZOOM)
+        position = CameraPosition.fromLatLngZoom(defaultLocation, DEFAULT_ZOOM)
     }
 
     LaunchedEffect(userLocation, stations) {
         if (!hasMovedToInitialLocation) {
             if (userLocation != null) {
                 cameraPositionState.animate(
-                    update = CameraUpdateFactory.newLatLngZoom(userLocation, MapDefaults.FOCUS_ZOOM),
-                    durationMs = MapDefaults.ANIM_DURATION_MS
+                    update = CameraUpdateFactory.newLatLngZoom(userLocation, FOCUS_ZOOM),
+                    durationMs = ANIM_DURATION_MS
                 )
                 onInitialLocationMoved()
             } else if (stations.isNotEmpty()) {
@@ -172,8 +169,8 @@ private fun MapContent(
                 val targetLng = firstStation.stationConfig.longitude
                 if (targetLat != null && targetLng != null && targetLat != 0.0 && targetLng != 0.0) {
                     cameraPositionState.animate(
-                        update = CameraUpdateFactory.newLatLngZoom(LatLng(targetLat, targetLng), MapDefaults.FOCUS_ZOOM),
-                        durationMs = MapDefaults.ANIM_DURATION_MS
+                        update = CameraUpdateFactory.newLatLngZoom(LatLng(targetLat, targetLng), FOCUS_ZOOM),
+                        durationMs = ANIM_DURATION_MS
                     )
                     onInitialLocationMoved()
                 }
@@ -197,8 +194,8 @@ private fun MapContent(
                             val targetLatLng = LatLng(station.stationConfig.latitude ?: 0.0, station.stationConfig.longitude ?: 0.0)
                             coroutineScope.launch {
                                 cameraPositionState.animate(
-                                    update = CameraUpdateFactory.newLatLngZoom(targetLatLng, MapDefaults.DOUBLE_CLICK_ZOOM),
-                                    durationMs = MapDefaults.LONG_ANIM_DURATION_MS
+                                    update = CameraUpdateFactory.newLatLngZoom(targetLatLng, DOUBLE_CLICK_ZOOM),
+                                    durationMs = LONG_ANIM_DURATION_MS
                                 )
                             }
                         }

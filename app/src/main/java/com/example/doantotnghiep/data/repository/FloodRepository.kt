@@ -79,6 +79,26 @@ class FloodRepository @Inject constructor(
         }
     }
 
+    fun observeStationLogs(stationId: String?): Flow<List<SensorData>> = callbackFlow {
+        val ref = dbRef.child("stations").child(stationId ?: "").child("logs").orderByChild("timestamp").limitToLast(24)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(p0: DataSnapshot) {
+                val list = mutableListOf<SensorData>()
+                for (child in p0.children) {
+                    val data = child.getValue(SensorData::class.java)
+                    if (data != null) {
+                        list.add(data)
+                    }
+                }
+                trySend(list)
+            }
+
+            override fun onCancelled(p0: DatabaseError) { }
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
     suspend fun getAllStations(): List<StationConfig> {
         var retries = 3
         while (retries > 0) {

@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -49,6 +50,8 @@ class AnalyticViewModel @Inject constructor(
     private val TAG = "AnalyticViewModel"
     private val predictionHelper = FloodPredictionHelper(context)
 
+    private var dataJob: Job? = null
+
     private val _uiState = MutableStateFlow(AnalyticUiState())
     val uiState: StateFlow<AnalyticUiState> = _uiState
 
@@ -76,11 +79,11 @@ class AnalyticViewModel @Inject constructor(
     }
 
     private fun fetchDataAndPredict() {
-        viewModelScope.launch {
+        dataJob?.cancel()
+        dataJob = viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
-                // 1. Lấy danh sách trạm, chọn trạm đầu tiên (hoặc lấy từ cache/HomeViewModel)
                 val stations = repository.getAllStations()
                 val stationId = stations.firstOrNull()?.id
                 if (stationId == null) {
@@ -89,15 +92,25 @@ class AnalyticViewModel @Inject constructor(
                 }
 
                 val config = repository.getStationConfig(stationId)
-                val logsList = repository.getStationLogs(stationId) ?: emptyList()
-
                 val offset = config?.calibrationOffset ?: 400
                 val danger = (config?.dangerThreshold ?: 350.0).toFloat() // Sử dụng đơn vị cm
 
-                if (logsList.isEmpty()) {
-                    _uiState.update { it.copy(isLoading = false, error = "Không có dữ liệu trạm.") }
-                    return@launch
+                repository.observeStationLogs(stationId).collect { logsList ->
+                    processLogsList(logsList, offset, danger)
                 }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching flow: ", e)
+            }
+        }
+    }
+
+    private suspend fun processLogsList(logsList: List<com.example.doantotnghiep.data.remote.SensorData>, offset: Int, danger: Float) {
+        try {
+            if (logsList.isEmpty()) {
+                _uiState.update { it.copy(isLoading = false, error = "Không có dữ liệu trạm.") }
+                return
+            }
                 
                 var sortedLogs = logsList.sortedBy { it.timestamp }.takeLast(24)
                 
@@ -159,7 +172,17 @@ class AnalyticViewModel @Inject constructor(
                     else -> 288
                 }
 
-                val predictionsList = generatePredictions(historicalData, pointsToPredict, lastTimestamp)
+                val rawPredictionsList = generatePredictions(historicalData, pointsToPredict, lastTimestamp)
+                
+                // MỚI: Kỹ thuật Anchor / Bias Correction
+                // Khấu trừ sai số tĩnh (jump offset) của điểm đầu tiên để nối mượt mà vào thực tế,
+                // đồng thời bảo toàn trọn vẹn dao động và đà tăng (trend) của các điểm sau.
+                val predictionsList = if (rawPredictionsList.isNotEmpty()) {
+                    val jumpOffset = rawPredictionsList.first() - currentLevelCm
+                    rawPredictionsList.map { (it - jumpOffset).coerceAtLeast(0f) }
+                } else {
+                    rawPredictionsList
+                }
                 
                 val maxLevelToDraw = maxOf(
                     danger * 1.2f,
@@ -208,10 +231,9 @@ class AnalyticViewModel @Inject constructor(
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching/predicting: ", e)
+                Log.e(TAG, "Error predicting: ", e)
                 _uiState.update { it.copy(isLoading = false, error = "Lỗi xử lý: ${e.message}") }
             }
-        }
     }
 
     private suspend fun generatePredictions(historical: List<HourlyData>, pointsAhead: Int, lastTimestamp: Long): List<Float> {

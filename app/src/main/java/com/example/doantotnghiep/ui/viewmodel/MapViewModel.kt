@@ -1,11 +1,10 @@
 package com.example.doantotnghiep.ui.viewmodel
 
 import android.content.Context
-import com.example.doantotnghiep.data.ai.FloodPredictionHelper
-import dagger.hilt.android.qualifiers.ApplicationContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.RADIUS_LIMIT
+import com.example.doantotnghiep.data.ai.FloodPredictionHelper
 import com.example.doantotnghiep.data.local.StationMapUiModel
 import com.example.doantotnghiep.data.local.enum.Status
 import com.example.doantotnghiep.data.local.enum.Trend
@@ -15,6 +14,7 @@ import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.utils.WaterLevelValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -130,7 +130,6 @@ class MapViewModel @Inject constructor(
                                 else -> Status.SAFE
                             }
 
-                            // Calculate 1h trend and predictions
                             var finalTrendValue = Trend.STABLE
                             var finalTrendPoints = listOf(0.1f, 0.2f, 0.15f, 0.3f)
 

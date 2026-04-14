@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainLayout(modifier: Modifier = Modifier) {
-    var currentScreen by remember { mutableStateOf(ScreenRoute.HOME) }
+    var currentScreen by remember { mutableStateOf(ScreenRoute.SPLASH) }
 
     val locationState = rememberLocationState()
 
@@ -59,12 +59,15 @@ fun MainLayout(modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
-        topBar = { FloodGuardTopBar() },
+        topBar = { if (currentScreen != ScreenRoute.SPLASH) FloodGuardTopBar() },
         containerColor = BackgroundLight,
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             Column(modifier = Modifier.fillMaxSize()) {
                 when(currentScreen) {
+                    ScreenRoute.SPLASH -> com.example.doantotnghiep.ui.screen.SplashScreen(
+                        onSplashFinished = { currentScreen = ScreenRoute.HOME }
+                    )
                     ScreenRoute.HOME -> HomeScreen(
                         userLocation = locationState.location,
                         onNavigate = { currentScreen = it },
@@ -85,11 +88,13 @@ fun MainLayout(modifier: Modifier = Modifier) {
                 }
             }
             
-            FloodGuardBottomBar(
-                currentRoute = currentScreen,
-                onNavigate = { currentScreen = it },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
+            if (currentScreen != ScreenRoute.SPLASH) {
+                FloodGuardBottomBar(
+                    currentRoute = currentScreen,
+                    onNavigate = { currentScreen = it },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
         }
     }
 }

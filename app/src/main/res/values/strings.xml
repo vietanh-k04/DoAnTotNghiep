@@ -14,7 +14,7 @@
     <string name="dashboard_humidity_unit">%</string>
     <string name="dashboard_weather">Thời tiết</string>
     <string name="dashboard_battery">PIN</string>
-    <string name="dashboard_local">TRẠM ĐỊA PHƯƠNG (&lt;1KM)</string>
+    <string name="dashboard_local">TRẠM ĐỊA PHƯƠNG (&lt;3KM)</string>
     <string name="dashboard_area">DỮ LIỆU KHU VỰC</string>
     <string name="dashboard_dry">Tạnh ráo</string>
     <string name="dashboard_light_rain">Mưa nhỏ</string>
