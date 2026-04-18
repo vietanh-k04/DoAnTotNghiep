@@ -27,7 +27,6 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
         } else if (lastWaterLevel >= 0 && (currentLevel - lastWaterLevel) >= 15.0) {
             isInvalid = true;
         } else if (lastWaterLevel >= 0 && Math.abs(currentLevel - lastWaterLevel) < 5.0) {
-            // Trở lại ổn định
             isInvalid = false;
         }
 
@@ -48,12 +47,12 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
             currentStatus = "DANGER";
             logType = 2;
             title = "BÁO ĐỘNG ĐỎ!";
-            message = `Trạm ${config.name} vượt mức NGUY HIỂM. Mực nước: ${currentLevel}cm`;
+            message = `${config.name} vượt mức NGUY HIỂM. Mực nước: ${currentLevel}cm`;
         } else if (currentLevel >= warning) {
             currentStatus = "WARNING";
             logType = 1;
             title = "CẢNH BÁO NƯỚC DÂNG";
-            message = `Trạm ${config.name} vượt mức CẢNH BÁO. Mực nước: ${currentLevel}cm`;
+            message = `${config.name} vượt mức CẢNH BÁO. Mực nước: ${currentLevel}cm`;
         } else {
             await alertStateRef.update({
                 lastWaterLevel: currentLevel

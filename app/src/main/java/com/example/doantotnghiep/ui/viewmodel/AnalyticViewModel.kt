@@ -7,50 +7,41 @@ import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.data.ai.FloodPredictionHelper
 import com.example.doantotnghiep.data.local.AiPrediction
 import com.example.doantotnghiep.data.local.HourlyData
+import com.example.doantotnghiep.data.local.state.AnalyticUiState
+import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.ui.theme.BlueRecorded
 import com.example.doantotnghiep.ui.theme.OrangePredicted
 import com.example.doantotnghiep.ui.theme.RedDanger
+import com.example.doantotnghiep.ui.theme.StatusSuccess
 import com.example.doantotnghiep.ui.theme.TextWhite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
-data class AnalyticUiState(
-    val isLoading: Boolean = true,
-    val error: String? = null,
-    val isStationActive: Boolean = true,
-    val currentWaterLevel: Float = 0f,
-    val isIncreasing: Boolean = false,
-    val isDecreasing: Boolean = false,
-    val recordedPoints: List<Float> = emptyList(),
-    val predictedPoints: List<Float> = emptyList(),
-    val predictions: List<AiPrediction> = emptyList(),
-    val dangerThreshold: Float = 3.5f,
-    val dangerThresholdPercent: Float = 0.5f, // Thêm property này
-    val selectedTime: String = "24h"
-)
+private const val TAG = "AnalyticViewModel"
 
 @HiltViewModel
 class AnalyticViewModel @Inject constructor(
     private val repository: FloodRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    private val TAG = "AnalyticViewModel"
     private val predictionHelper = FloodPredictionHelper(context)
 
     private var dataJob: Job? = null
+    private var realtimeJob: Job? = null
 
     private val _uiState = MutableStateFlow(AnalyticUiState())
     val uiState: StateFlow<AnalyticUiState> = _uiState
@@ -78,29 +69,67 @@ class AnalyticViewModel @Inject constructor(
         fetchDataAndPredict()
     }
 
+    fun selectStation(station: StationConfig) {
+        _uiState.update { it.copy(selectedStation = station) }
+        fetchDataAndPredict()
+    }
+
     private fun fetchDataAndPredict() {
         dataJob?.cancel()
         dataJob = viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
-                val stations = repository.getAllStations()
-                val stationId = stations.firstOrNull()?.id
+                var stations = _uiState.value.stations
+                if (stations.isEmpty()) {
+                    stations = repository.getAllStations()
+                    _uiState.update { it.copy(stations = stations) }
+                }
+
+                val currentSelected = _uiState.value.selectedStation
+                val stationToObserve = if (currentSelected != null && stations.any { it.id == currentSelected.id }) {
+                    currentSelected
+                } else {
+                    stations.firstOrNull()?.also { first ->
+                        _uiState.update { it.copy(selectedStation = first) }
+                    }
+                }
+
+                val stationId = stationToObserve?.id
                 if (stationId == null) {
                     _uiState.update { it.copy(isLoading = false, error = "Không tìm thấy trạm nào!") }
                     return@launch
                 }
 
-                val config = repository.getStationConfig(stationId)
-                val offset = config?.calibrationOffset ?: 400
-                val danger = (config?.dangerThreshold ?: 350.0).toFloat() // Sử dụng đơn vị cm
+                realtimeJob?.cancel()
+                realtimeJob = viewModelScope.launch {
+                    combine(
+                        repository.observeStationConfig(stationId),
+                        repository.getRealtimeDatabase(stationId)
+                    ) { config, sensorData -> Pair(config, sensorData) }
+                    .collect { (config, sensorData) ->
+                        if (sensorData != null) {
+                            val offset = config?.calibrationOffset ?: 400
+                            val rawDistance = sensorData.distanceRaw ?: 0
+                            val realtimeLevelCm = (offset - rawDistance).toFloat().coerceAtLeast(0f)
+                            _uiState.update { it.copy(currentWaterLevel = realtimeLevelCm) }
+                        }
+                    }
+                }
 
-                repository.observeStationLogs(stationId).collect { logsList ->
+                combine(
+                    repository.observeStationConfig(stationId),
+                    repository.observeStationLogs(stationId)
+                ) { config, logsList -> Pair(config, logsList) }
+                .collect { (config, logsList) ->
+                    val offset = config?.calibrationOffset ?: 400
+                    val danger = (config?.dangerThreshold ?: 350.0).toFloat()
                     processLogsList(logsList, offset, danger)
                 }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching flow: ", e)
+                _uiState.update { it.copy(isLoading = false, error = "Lỗi xử lý: ${e.message}") }
             }
         }
     }
@@ -142,9 +171,13 @@ class AnalyticViewModel @Inject constructor(
 
                     val rawDistance = data.distanceRaw ?: 0
                     val waterLevelCm = (offset - rawDistance).toFloat().coerceAtLeast(0f)
+
+                    val rainVal = data.rainVal?.toFloat() ?: 1024f
+                    val rainFraction = (1024f - rainVal).coerceIn(0f, 1024f) / 1024f
+                    val mappedRainCm = if (rainVal > 900f) 0f else rainFraction * 1.5f
                     
                     HourlyData(
-                        rainfallCm = 0f, 
+                        rainfallCm = mappedRainCm, 
                         waterVolume = waterLevelCm * 10f, 
                         hrSin = hrSin,
                         hrCos = hrCos,
@@ -160,8 +193,7 @@ class AnalyticViewModel @Inject constructor(
                 val lastRecord = sortedLogs.last()
                 val rawLast = lastRecord.timestamp ?: System.currentTimeMillis()
                 val lastTimestamp = if (rawLast < 10000000000L) rawLast * 1000 else rawLast
-                
-                // Trạm coi như không hoạt động nếu bản ghi cuối cùng cách đây quá 1 giờ
+
                 val isStationActive = (System.currentTimeMillis() - lastTimestamp) <= 3600_000L
                 
                 val pointsToPredict = when (_uiState.value.selectedTime) {
@@ -173,10 +205,7 @@ class AnalyticViewModel @Inject constructor(
                 }
 
                 val rawPredictionsList = generatePredictions(historicalData, pointsToPredict, lastTimestamp)
-                
-                // MỚI: Kỹ thuật Anchor / Bias Correction
-                // Khấu trừ sai số tĩnh (jump offset) của điểm đầu tiên để nối mượt mà vào thực tế,
-                // đồng thời bảo toàn trọn vẹn dao động và đà tăng (trend) của các điểm sau.
+
                 val predictionsList = if (rawPredictionsList.isNotEmpty()) {
                     val jumpOffset = rawPredictionsList.first() - currentLevelCm
                     rawPredictionsList.map { (it - jumpOffset).coerceAtLeast(0f) }
@@ -195,31 +224,30 @@ class AnalyticViewModel @Inject constructor(
                 }
                 
                 val predictedPointsForChart = mutableListOf(recordedPointsForChart.last())
-                
-                // Lấy các điểm dự đoán cách đều nhau để vẽ
-                val step = if (pointsToPredict > 5) pointsToPredict / 5 else 1
+
+                val step = pointsToPredict / 5
                 for (i in 0 until pointsToPredict step step) {
                     if (i < predictionsList.size) {
                         predictedPointsForChart.add(predictionsList[i] / maxLevelToDraw)
                     }
                 }
-                
-                // Lấy điểm dự đoán cuối cùng (nếu chưa được add do step)
+
                 if (predictedPointsForChart.size < 6 && predictionsList.isNotEmpty()) {
                     predictedPointsForChart.add(predictionsList.last() / maxLevelToDraw)
                 }
 
-                // Tính toán tỷ lệ phần trăm của Danger Threshold để vẽ trên UI
                 val dangerThresholdPercent = danger / maxLevelToDraw
 
-                // 5. Build danh sách AiPrediction cho UI
-                val aiPredictions = buildPredictionList(predictionsList, danger, lastTimestamp)
+                val aiPredictions = buildPredictionList(predictionsList, danger, lastTimestamp, currentLevelCm)
 
                 _uiState.update {
+                    val realtimeLevel = it.currentWaterLevel 
+                    val displayLevel = if (realtimeLevel > 0f) realtimeLevel else currentLevelCm
+                    
                     it.copy(
                         isLoading = false,
                         isStationActive = isStationActive,
-                        currentWaterLevel = currentLevelCm,
+                        currentWaterLevel = displayLevel,
                         isIncreasing = isIncreasing,
                         isDecreasing = isDecreasing,
                         recordedPoints = recordedPointsForChart,
@@ -242,11 +270,10 @@ class AnalyticViewModel @Inject constructor(
         
         val startCal = Calendar.getInstance().apply { timeInMillis = lastTimestamp }
 
-        for (i in 1..pointsAhead) {
+        (1..pointsAhead).forEach { _ ->
             val nextLevelCm = predictionHelper.predictFutureWaterLevel(currentList.takeLast(24))
             predictions.add(nextLevelCm)
 
-            // Mô phỏng dữ liệu cho 5 phút tiếp theo
             startCal.add(Calendar.MINUTE, 5)
             val nextHour = startCal.get(Calendar.HOUR_OF_DAY)
             val nextMinute = startCal.get(Calendar.MINUTE)
@@ -254,10 +281,14 @@ class AnalyticViewModel @Inject constructor(
             val newSin = sin(2 * Math.PI * decimalHour / 24).toFloat()
             val newCos = cos(2 * Math.PI * decimalHour / 24).toFloat()
 
+            val lastRainfallCm = currentList.last().rainfallCm
+            var futureRainfall = lastRainfallCm * 0.5f
+            if (futureRainfall < 0.1f) futureRainfall = 0f
+
             currentList.add(
                 HourlyData(
-                    rainfallCm = 0f, // Giả sử không mưa trong tương lai
-                    waterVolume = nextLevelCm * 10f, 
+                    rainfallCm = futureRainfall,
+                    waterVolume = nextLevelCm * 10f,
                     hrSin = newSin,
                     hrCos = newCos,
                     waterLevelCm = nextLevelCm
@@ -267,26 +298,29 @@ class AnalyticViewModel @Inject constructor(
         return predictions
     }
 
-    private fun buildPredictionList(predictionsCm: List<Float>, dangerThreshold: Float, lastTimestamp: Long): List<AiPrediction> {
+    private fun buildPredictionList(predictionsCm: List<Float>, dangerThreshold: Float, lastTimestamp: Long, currentLevelCm: Float): List<AiPrediction> {
         val result = mutableListOf<AiPrediction>()
         val format = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        // Chọn ra tối đa 4 mốc thời gian nổi bật để hiển thị
-        var maxPredicted = 0f
-        var maxIndex = -1
+        val step = 1.coerceAtLeast(predictionsCm.size / 4)
+        val displayedIndices = mutableListOf<Int>()
+        for (i in predictionsCm.indices step step) {
+            if (displayedIndices.size >= 4) break
+            displayedIndices.add(i)
+        }
 
-        predictionsCm.forEachIndexed { index, value ->
-            if (value > maxPredicted) {
-                maxPredicted = value
-                maxIndex = index
+        var maxCardLevel = -1f
+        var maxCardIndex = -1
+        for (idx in displayedIndices) {
+            if (predictionsCm[idx] > maxCardLevel) {
+                maxCardLevel = predictionsCm[idx]
+                maxCardIndex = idx
             }
         }
 
-        // Lấy 4 điểm (cách đều hoặc có mốc đỉnh)
-        val step = Math.max(1, predictionsCm.size / 4)
-        for (i in predictionsCm.indices step step) {
-            if (result.size >= 4) break
-            
+        var previousCardLevel = currentLevelCm
+        
+        for (i in displayedIndices) {
             val cal = Calendar.getInstance().apply {
                 timeInMillis = lastTimestamp
                 add(Calendar.MINUTE, (i + 1) * 5)
@@ -294,17 +328,20 @@ class AnalyticViewModel @Inject constructor(
             val timeStr = format.format(cal.time)
             val level = predictionsCm[i]
             
-            val isPeak = (i == maxIndex)
+            val isPeak = (i == maxCardIndex) && (level > currentLevelCm)
             val isCritical = level >= dangerThreshold
             
+            val diff = level - previousCardLevel
             val (status, color) = when {
                 isCritical -> "CẢNH BÁO" to RedDanger
                 isPeak -> "ĐẠT ĐỈNH" to OrangePredicted
-                level > predictionsCm.firstOrNull() ?: 0f -> "TĂNG LÊN" to BlueRecorded
+                abs(diff) < 0.5f -> "ỔN ĐỊNH" to StatusSuccess
+                diff > 0f -> "TĂNG LÊN" to BlueRecorded
                 else -> "RÚT XUỐNG" to TextWhite
             }
 
             result.add(AiPrediction(timeStr, String.format(Locale.US, "%.1f", level).toFloat(), status, color, isPeak))
+            previousCardLevel = level
         }
 
         return result

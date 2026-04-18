@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,13 +56,14 @@ import com.example.doantotnghiep.MOCK_AI_CONFIDENCE_PERCENT
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.TIME_FRAMES
 import com.example.doantotnghiep.data.local.AiPrediction
+import com.example.doantotnghiep.data.local.state.AnalyticUiState
+import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.ui.theme.BlueRecorded
 import com.example.doantotnghiep.ui.theme.GlassBg
 import com.example.doantotnghiep.ui.theme.OrangePredicted
 import com.example.doantotnghiep.ui.theme.RedDanger
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
-import com.example.doantotnghiep.ui.viewmodel.AnalyticUiState
 import com.example.doantotnghiep.ui.viewmodel.AnalyticViewModel
 import com.example.doantotnghiep.utils.appBackground
 import com.example.doantotnghiep.utils.getTrendStatusText
@@ -93,30 +95,80 @@ fun AnalyticScreen(viewModel: AnalyticViewModel = hiltViewModel()) {
                 textAlign = TextAlign.Center
             )
         } else {
-            AnalyticContent(uiState, onTimeSelected = { viewModel.setTimeFrame(it) })
+            AnalyticContent(
+                uiState = uiState,
+                onTimeSelected = { viewModel.setTimeFrame(it) },
+                onStationSelected = { viewModel.selectStation(it) }
+            )
         }
     }
 }
 
 @Composable
-private fun AnalyticContent(uiState: AnalyticUiState, onTimeSelected: (String) -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (!uiState.isStationActive) Modifier.blur(12.dp) else Modifier)
-                .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            TimeSelectorRow(uiState.selectedTime, onTimeSelected)
-            ForecastChartCard(uiState)
-            AiConfidenceSimpleCard()
-            AiPredictionsSection(uiState.predictions, uiState.selectedTime)
-        }
+private fun AnalyticContent(
+    uiState: AnalyticUiState,
+    onTimeSelected: (String) -> Unit,
+    onStationSelected: (StationConfig) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        StationTabsRow(
+            stations = uiState.stations,
+            selectedStationId = uiState.selectedStation?.id,
+            onStationSelected = onStationSelected,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 20.dp)
+        )
 
-        if (!uiState.isStationActive) {
-            InactiveStationOverlay()
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (!uiState.isStationActive) Modifier.blur(12.dp) else Modifier)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 20.dp, end = 20.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                TimeSelectorRow(uiState.selectedTime, onTimeSelected)
+                ForecastChartCard(uiState)
+                AiConfidenceSimpleCard()
+                AiPredictionsSection(uiState.predictions, uiState.selectedTime)
+            }
+
+            if (!uiState.isStationActive) {
+                InactiveStationOverlay()
+            }
+        }
+    }
+}
+
+@Composable
+private fun StationTabsRow(
+    stations: List<StationConfig>,
+    selectedStationId: String?,
+    onStationSelected: (StationConfig) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        stations.forEach { station ->
+            val isSelected = station.id == selectedStationId
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (isSelected) BlueRecorded else GlassBg)
+                    .clickable { onStationSelected(station) }
+            ) {
+                Text(
+                    text = station.name ?: stringResource(R.string.UNKNOWN),
+                    color = if (isSelected) Color.White else TextDim,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
         }
     }
 }
@@ -237,7 +289,7 @@ private fun ChartHeaderInfo(uiState: AnalyticUiState) {
             Text(stringResource(R.string.water_forecast), color = TextDim, fontSize = 14.sp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    String.format(Locale.US, "%.1fm", uiState.currentWaterLevel),
+                    String.format(Locale.US, "%.1f cm", uiState.currentWaterLevel),
                     fontSize = 36.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = TextWhite

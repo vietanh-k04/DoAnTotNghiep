@@ -80,7 +80,7 @@
     <string name="confirm">Xác nhận</string>
     <string name="hide_password">Ẩn mật khẩu</string>
     <string name="show_password">Hiện mật khẩu</string>
-    <string name="water_forecast">Dự báo mực nước</string>
+    <string name="water_forecast">Mức nước hiện tại</string>
     <string name="map_fetch_location_success">Lấy toạ độ thành công!</string>
     <string name="map_fetch_location_error">Lỗi lấy toạ độ!</string>
     <string name="map_fetch_location_error_desc">Vui lòng kiểm tra quyền truy cập vị trí và thử lại.</string>

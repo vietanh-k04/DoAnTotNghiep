@@ -14,9 +14,9 @@ const val TRANSITION_DURATION_MS = 800
 
 const val DEFAULT_CITY = "Hanoi"
 
-const val MOCK_AI_CONFIDENCE_PERCENT = "89%"
+const val MOCK_AI_CONFIDENCE_PERCENT = "60%"
 
-const val MOCK_AI_CONFIDENCE_FLOAT = 0.89f
+const val MOCK_AI_CONFIDENCE_FLOAT = 0.6f
 
 val TIME_FRAMES = listOf("1h", "6h", "12h", "24h")
 
