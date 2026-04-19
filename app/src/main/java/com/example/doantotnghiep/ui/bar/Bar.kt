@@ -3,6 +3,7 @@ package com.example.doantotnghiep.ui.bar
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,19 +44,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.data.local.NavigationItem
 import com.example.doantotnghiep.data.local.enum.ScreenRoute
-import com.example.doantotnghiep.ui.dashboard.NotificationDiaLog
+import com.example.doantotnghiep.ui.dialog.NotificationDiaLog
 import com.example.doantotnghiep.ui.theme.SoftBgTop
 import com.example.doantotnghiep.ui.theme.StatusDanger
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
@@ -152,7 +151,6 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
     }
 }
 
-
 @Composable
 fun FloodGuardBottomBar(
     currentRoute: ScreenRoute,
@@ -170,14 +168,12 @@ fun FloodGuardBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 24.dp)
-            .shadow(
-                elevation = 24.dp,
-                shape = RoundedCornerShape(32.dp),
-                spotColor = Color(0xFF0EA5E9).copy(alpha = 0.5f),
-                ambientColor = Color(0xFF0EA5E9).copy(alpha = 0.3f)
+            .border(
+                BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                RoundedCornerShape(32.dp)
             )
             .clip(RoundedCornerShape(32.dp))
-            .background(Color(0xFF1E293B))
+            .background(Color(0xFF1E293B).copy(alpha = 0.85f))
     ) {
         Row(
             modifier = Modifier
@@ -188,6 +184,7 @@ fun FloodGuardBottomBar(
         ) {
             items.forEach { item ->
                 val isSelected = currentRoute == item.route
+
                 val animatedBgColor by animateColorAsState(
                     targetValue = if (isSelected) Color(0xFF0EA5E9) else Color.Transparent,
                     animationSpec = tween(300)
@@ -196,7 +193,7 @@ fun FloodGuardBottomBar(
                     targetValue = if (isSelected) Color.White else Color(0xFF94A3B8),
                     animationSpec = tween(300)
                 )
-                
+
                 val interactionSource = remember { MutableInteractionSource() }
 
                 Box(
@@ -208,7 +205,7 @@ fun FloodGuardBottomBar(
                             interactionSource = interactionSource,
                             indication = null
                         ) { onNavigate(item.route ?: ScreenRoute.HOME) }
-                        .padding(horizontal = if(isSelected) 14.dp else 10.dp),
+                        .padding(horizontal = if(isSelected) 14.dp else 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -221,7 +218,7 @@ fun FloodGuardBottomBar(
                             tint = animatedContentColor,
                             modifier = Modifier.size(24.dp)
                         )
-                        
+
                         AnimatedVisibility(visible = isSelected) {
                             Text(
                                 text = item.title ?: "",
@@ -229,7 +226,6 @@ fun FloodGuardBottomBar(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(start = 6.dp)
                             )
                         }

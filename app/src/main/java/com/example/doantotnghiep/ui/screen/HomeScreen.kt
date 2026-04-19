@@ -8,18 +8,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -46,13 +51,6 @@ import com.example.doantotnghiep.ui.dashboard.EnvironmentSection
 import com.example.doantotnghiep.ui.dashboard.HybridBadge
 import com.example.doantotnghiep.ui.dashboard.WaveCard
 import com.example.doantotnghiep.ui.dialog.NoStationDialog
-import com.example.doantotnghiep.ui.dialog.TopToast
-import com.example.doantotnghiep.ui.theme.ErrorBorder
-import com.example.doantotnghiep.ui.theme.ErrorContainer
-import com.example.doantotnghiep.ui.theme.ErrorIcon
-import com.example.doantotnghiep.ui.theme.ErrorIconContainer
-import com.example.doantotnghiep.ui.theme.ErrorMessage
-import com.example.doantotnghiep.ui.theme.ErrorTitle
 import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
 import com.example.doantotnghiep.ui.viewmodel.MapViewModel
 import com.example.doantotnghiep.ui.viewmodel.WeatherViewModel
@@ -73,7 +71,6 @@ fun HomeScreen(
 ) {
     var isApiScreen by rememberSaveable { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val uiState by homeViewModel.uiState.collectAsState()
     
     WeatherLifecycleSync(lifecycleOwner, userLocation, weatherViewModel)
     
@@ -93,14 +90,6 @@ fun HomeScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 120.dp, end = 16.dp)
-        )
-
-        AlertPopups(
-            showRecalibrate = uiState.showRecalibratePopup,
-            showObstruction = uiState.showObstructionPopup,
-            onDismissRecalibrate = { homeViewModel.dismissRecalibratePopup() },
-            onDismissObstruction = { homeViewModel.dismissObstructionPopup() },
-            modifier = Modifier.align(Alignment.TopCenter)
         )
     }
 }
@@ -163,60 +152,28 @@ private fun ScreenTransitionContent(
 private fun SwitchScreenFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary
+        modifier = modifier
+            .size(56.dp)
+            .border(BorderStroke(0.5.dp, Color.White.copy(alpha = 0.4f)), CircleShape),
+
+        containerColor = Color.White.copy(alpha = 0.6f),
+
+        contentColor = Color(0xFF007AFF),
+
+        shape = CircleShape,
+
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            hoveredElevation = 0.dp,
+            focusedElevation = 0.dp
+        )
     ) {
         Icon(
             imageVector = Icons.Default.SwapHoriz,
-            contentDescription = stringResource(R.string.FAB_DESC)
+            contentDescription = stringResource(R.string.FAB_DESC),
+            modifier = Modifier.size(28.dp)
         )
-    }
-}
-
-@Composable
-private fun AlertPopups(
-    showRecalibrate: Boolean,
-    showObstruction: Boolean,
-    onDismissRecalibrate: () -> Unit,
-    onDismissObstruction: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        AnimatedVisibility(
-            visible = showRecalibrate,
-            enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
-        ) {
-            TopToast(
-                title = stringResource(R.string.RECALIBRATE_TITLE),
-                message = stringResource(R.string.RECALIBRATE_DESC),
-                iconRes = R.drawable.ic_water_drop,
-                onClick = onDismissRecalibrate
-            )
-        }
-
-        AnimatedVisibility(
-            visible = showObstruction,
-            enter = slideInVertically(initialOffsetY = { -it - 100 }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { -it - 100 }) + fadeOut(),
-        ) {
-            TopToast(
-                title = stringResource(R.string.OBSTRUCTION_TITLE),
-                message = stringResource(R.string.OBSTRUCTION_DESC),
-                iconRes = R.drawable.ic_water_drop,
-                containerColor = ErrorContainer,
-                borderColor = ErrorBorder,
-                iconContainerColor = ErrorIconContainer,
-                iconColor = ErrorIcon,
-                titleColor = ErrorTitle,
-                messageColor = ErrorMessage,
-                onClick = onDismissObstruction
-            )
-        }
     }
 }
 

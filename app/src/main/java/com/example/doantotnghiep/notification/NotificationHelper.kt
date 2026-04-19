@@ -31,6 +31,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setGroup("FLOOD_ALERTS")
             .setAutoCancel(true)
 
         if(status == R.string.status_danger) {
@@ -38,9 +39,9 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vibratorManager.defaultVibrator.vibrate(VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE))
+                vibratorManager.defaultVibrator.vibrate(VibrationEffect.createOneShot(3000, VibrationEffect.DEFAULT_AMPLITUDE))
             } else {
-                vibrator.vibrate(1000)
+                vibrator.vibrate(3000)
             }
         }
         else if(status == R.string.status_warning) {
@@ -48,5 +49,40 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
         }
 
         notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+    }
+
+    fun sendLocalFloodAlert(title: String, message: String) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val timings = longArrayOf(0, 500, 200, 500, 200, 500)
+                val amplitudes = intArrayOf(0, 255, 0, 255, 0, 255)
+                vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(longArrayOf(0, 500, 200, 500, 200, 500), -1)
+            }
+        }
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_water_drop)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setGroup("FLOOD_ALERTS")
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(999, notification)
     }
 }

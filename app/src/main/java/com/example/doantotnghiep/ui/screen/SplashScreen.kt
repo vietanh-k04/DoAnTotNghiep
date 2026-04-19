@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.LottieCompositionFactory.fromRawResSync
 import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.example.doantotnghiep.R
 import com.example.doantotnghiep.ui.theme.BackgroundLight
@@ -36,11 +37,12 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     
     val progress by animateLottieCompositionAsState(
         composition = composition,
-        isPlaying = true
+        isPlaying = true,
+        iterations = LottieConstants.IterateForever
     )
 
     LaunchedEffect(key1 = true) {
-        delay(5000)
+        delay(8000)
         onSplashFinished()
     }
 

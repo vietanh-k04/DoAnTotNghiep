@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.ui.dashboard
+package com.example.doantotnghiep.ui.dialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

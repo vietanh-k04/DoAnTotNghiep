@@ -18,6 +18,7 @@ import com.example.doantotnghiep.utils.WaterLevelValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,24 +30,25 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val repository: FloodRepository, private val notificationHelper: NotificationHelper, @ApplicationContext private val context: Context) : ViewModel() {
+class HomeViewModel @Inject constructor(
+    private val repository: FloodRepository,
+    private val notificationHelper: NotificationHelper,
+    @ApplicationContext private val context: Context
+) : ViewModel() {
+
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState
 
     private val _notifications = MutableStateFlow<List<NotificationLog>>(emptyList())
-
     val notification: StateFlow<List<NotificationLog>> = _notifications
 
     val unreadCount: StateFlow<Int> = _notifications.map { list ->
-        list.count {!it.isRead}
+        list.count { !it.isRead }
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
-    private var lastWaterLevel = -1.0
-    private var lastStatus: Int? = null
-
+    private var lastRawWaterLevel = -1.0
+    private var lastStatusResId: Int? = null
     private var smoothedLevel = -1.0
-
-    private var percent = 0f
 
     private var observeJob: Job? = null
     private var currentObservedStationId: String? = null
@@ -74,35 +76,30 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
                     stations
                 )
             } else {
-                kotlinx.coroutines.delay(2500L)
-                if (_uiState.value.isLocal) {
-                    setLocalMode(false)
-                }
+                delay(2500L)
+                if (_uiState.value.isLocal) setLocalMode(false)
             }
         }
     }
 
-    fun scanAndSyncData(userLat: Double, userLng: Double, allStations: List<StationMapUiModel>) {
-        var closetStation: StationMapUiModel? = null
+    private fun scanAndSyncData(userLat: Double, userLng: Double, allStations: List<StationMapUiModel>) {
+        var closestStation: StationMapUiModel? = null
         var minDistance = Float.MAX_VALUE
 
-        for(station in allStations) {
+        for (station in allStations) {
             val stLat = station.stationConfig.latitude ?: continue
             val stLng = station.stationConfig.longitude ?: continue
-
             val distance = LocationUtils.calculateDistance(userLat, userLng, stLat, stLng)
 
-            if(distance <= RADIUS_LIMIT && distance < minDistance) {
+            if (distance <= RADIUS_LIMIT && distance < minDistance) {
                 minDistance = distance
-                closetStation = station
+                closestStation = station
             }
         }
 
-        if(closetStation != null) {
-            _uiState.update { currentState ->
-                currentState.copy(isLocal = true)
-            }
-            val targetStationId = closetStation.stationConfig.id ?: ""
+        if (closestStation != null) {
+            _uiState.update { it.copy(isLocal = true) }
+            val targetStationId = closestStation.stationConfig.id ?: ""
             if (currentObservedStationId != targetStationId) {
                 observerStationData(targetStationId)
             }
@@ -112,9 +109,7 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
     }
 
     fun setLocalMode(isLocal: Boolean) {
-        _uiState.update { currentState ->
-            currentState.copy(isLocal = isLocal)
-        }
+        _uiState.update { it.copy(isLocal = isLocal) }
         if (!isLocal) {
             observeJob?.cancel()
             currentObservedStationId = null
@@ -124,112 +119,79 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
     private fun observerStationData(stationId: String) {
         currentObservedStationId = stationId
         observeJob?.cancel()
+
         smoothedLevel = -1.0
-        lastWaterLevel = -1.0
+        lastRawWaterLevel = -1.0
+
         observeJob = viewModelScope.launch {
             combine(
                 repository.observeStationConfig(stationId),
                 repository.getRealtimeDatabase(stationId)
-            ) { config, sensorData ->
-                Pair(config, sensorData)
-            }.collect { (config, sensorData) ->
-                if (config != lastObservedConfig) {
-                    lastWaterLevel = -1.0
-                    lastObservedConfig = config
-                }
+            ) { config, sensorData -> config to sensorData }
+                .collect { (config, sensorData) ->
+                    if (config != lastObservedConfig) {
+                        lastRawWaterLevel = -1.0
+                        lastObservedConfig = config
+                    }
 
-                val offset = config?.calibrationOffset ?: 0
-                val rawWaterLevel = (offset - (sensorData?.distanceRaw ?: 0)).toDouble()
-                val currentLevel = calculateWaterLevel(sensorData, config)
+                    if (sensorData == null || config == null) return@collect
 
-                var isInvalid = false
-                val validationState = WaterLevelValidator.validate(rawWaterLevel, lastWaterLevel)
+                    val offset = config.calibrationOffset ?: 0
+                    val rawDist = sensorData.distanceRaw ?: 0
+                    val rawWaterLevel = (offset - rawDist).toDouble()
 
-                when (validationState) {
-                    WaterLevelState.ERROR_NEGATIVE -> {
-                        isInvalid = true
-                        if (!hasAlertedRecalibration) {
-                            _uiState.update { it.copy(showRecalibratePopup = true) }
-                            hasAlertedRecalibration = true
-                            viewModelScope.launch {
-                                kotlinx.coroutines.delay(5000L)
-                                dismissRecalibratePopup()
-                            }
+                    val validationState = WaterLevelValidator.validate(rawWaterLevel, lastRawWaterLevel)
+                    handleValidation(validationState, rawWaterLevel)
+
+                    val displayLevel = if (rawWaterLevel < 0) 0.0 else rawWaterLevel
+                    val waterPercent = if (offset > 0) (displayLevel.toFloat() / offset.toFloat()).coerceIn(0f, 1f) else 0f
+
+                    val status = determineStatus(displayLevel, config)
+
+                    if (lastStatusResId != null && status != lastStatusResId) {
+                        if (status == R.string.status_danger || status == R.string.status_warning) {
+                            triggerAlert(status, displayLevel)
                         }
                     }
-                    WaterLevelState.ERROR_OBSTRUCTION -> {
-                        isInvalid = true
-                        if (!hasAlertedObstruction) {
-                            _uiState.update { it.copy(showObstructionPopup = true) }
-                            hasAlertedObstruction = true
-                            viewModelScope.launch {
-                                kotlinx.coroutines.delay(5000L)
-                                dismissObstructionPopup()
-                            }
-                        }
-                    }
-                    WaterLevelState.VALID -> {
-                        hasAlertedRecalibration = false
-                        if (WaterLevelValidator.isStabilized(rawWaterLevel, lastWaterLevel)) {
-                            hasAlertedObstruction = false
-                        }
-                    }
+                    lastStatusResId = status
+
+                    val trend = calculateTrend(displayLevel)
+
+                    updateHomeUI(displayLevel, waterPercent, status, trend, sensorData)
+
+                    lastRawWaterLevel = rawWaterLevel
                 }
+        }
+    }
 
-                if (isInvalid) {
-                    _uiState.update { currentState ->
-                        val rawTimestamp = sensorData?.timestamp
-                        val fixedTimestamp = if (rawTimestamp != null && rawTimestamp < 10000000000L) rawTimestamp * 1000 else rawTimestamp ?: currentState.timestamp
-
-                        currentState.copy(
-                            temperature = sensorData?.temp ?: currentState.temperature,
-                            humidity = sensorData?.humid ?: currentState.humidity,
-                            rainRaw = sensorData?.rainVal ?: currentState.rainRaw,
-                            timestamp = fixedTimestamp
-                        )
-                    }
-                    return@collect
+    private fun handleValidation(state: WaterLevelState, currentRaw: Double) {
+        when (state) {
+            WaterLevelState.ERROR_NEGATIVE -> {
+                if (!hasAlertedRecalibration) {
+                    _uiState.update { it.copy(showRecalibratePopup = true) }
+                    hasAlertedRecalibration = true
+                    viewModelScope.launch { delay(5000L); dismissRecalibratePopup() }
                 }
-
-                val status = determineStatus(currentLevel, config)
-
-                if (lastStatus == null) {
-                    lastStatus = status
-                } else if (status != lastStatus) {
-                    if (status == R.string.status_danger || status == R.string.status_warning) {
-                        triggerAlert(status, currentLevel)
-                    }
-                    lastStatus = status
+            }
+            WaterLevelState.ERROR_OBSTRUCTION -> {
+                if (!hasAlertedObstruction) {
+                    _uiState.update { it.copy(showObstructionPopup = true) }
+                    hasAlertedObstruction = true
+                    viewModelScope.launch { delay(5000L); dismissObstructionPopup() }
                 }
-
-                val trend = calculatorTrend(currentLevel)
-
-                updateUI(currentLevel, status, trend, sensorData)
-                lastWaterLevel = rawWaterLevel
+            }
+            WaterLevelState.VALID -> {
+                hasAlertedRecalibration = false
+                if (!WaterLevelValidator.isStabilized(currentRaw, lastRawWaterLevel)) {
+                    hasAlertedObstruction = false
+                }
             }
         }
     }
 
-    fun dismissRecalibratePopup() {
-        _uiState.update { it.copy(showRecalibratePopup = false) }
-    }
-
-    fun dismissObstructionPopup() {
-        _uiState.update { it.copy(showObstructionPopup = false) }
-    }
-
-    private fun calculateWaterLevel(data: SensorData?, config: StationConfig?) : Double {
-        val offset = config?.calibrationOffset ?: 0
-        val waterLevel =  (offset - (data?.distanceRaw ?: 0)).toDouble()
-        val waterLevelPos = if(waterLevel < 0) 0.0 else waterLevel
-        percent = if (offset > 0) waterLevelPos.toFloat() / offset.toFloat() else 0f
-        return waterLevelPos
-    }
-
-    private fun determineStatus(level: Double, config: StationConfig?) : Int {
-        val warning = config?.warningThreshold ?: 0.0
-        val danger = config?.dangerThreshold ?: 0.0
-
+    private fun determineStatus(level: Double, config: StationConfig): Int {
+        val warning = config.warningThreshold ?: 0.0
+        val danger = config.dangerThreshold ?: 0.0
         return when {
             level >= danger -> R.string.status_danger
             level >= warning -> R.string.status_warning
@@ -237,55 +199,55 @@ class HomeViewModel @Inject constructor(private val repository: FloodRepository,
         }
     }
 
-    private fun calculatorTrend(currentLevel: Double) : Int {
+    private fun calculateTrend(currentLevel: Double): Int {
         if (smoothedLevel < 0) {
             smoothedLevel = currentLevel
             return R.string.dashboard_stable
         }
 
-        smoothedLevel = 0.25 * currentLevel + 0.75 * smoothedLevel
-
+        smoothedLevel = 0.20 * currentLevel + 0.80 * smoothedLevel
         val diff = currentLevel - smoothedLevel
 
         return when {
-            diff > 0.3 -> R.string.dashboard_rising
-            diff < -0.3 -> R.string.dashboard_falling
+            diff > 0.2 -> R.string.dashboard_rising
+            diff < -0.2 -> R.string.dashboard_falling
             else -> R.string.dashboard_stable
         }
     }
 
-    private fun triggerAlert(status: Int, level: Double) {
-        val title = when(status) {
-            R.string.status_danger -> R.string.alert_danger
-            R.string.status_warning -> R.string.alert_warning
-            else -> R.string.alert_safe
-        }
-        notificationHelper.sendAlert(context.getString(title), context.getString(R.string.alert_water_level, level.toString()), status)
-    }
-
-    private fun updateUI(level: Double, status: Int, trend: Int, data: SensorData?) {
+    private fun updateHomeUI(level: Double, percent: Float, status: Int, trend: Int, data: SensorData) {
         _uiState.update { currentState ->
-            val rawTimestamp = data?.timestamp
-            val fixedTimestamp = if (rawTimestamp != null && rawTimestamp < 10000000000L) rawTimestamp * 1000 else rawTimestamp ?: currentState.timestamp
-            
+            val rawTs = data.timestamp
+            val fixedTs = if (rawTs != null && rawTs < 10000000000L) rawTs * 1000 else rawTs ?: currentState.timestamp
+
             currentState.copy(
                 waterLevel = level,
+                waterPercent = percent,
                 status = status,
                 trend = trend,
-                rainRaw = data?.rainVal ?: 1024,
-                temperature = data?.temp ?: 0.0,
-                humidity = data?.humid ?: 0.0,
-                timestamp = fixedTimestamp,
-                waterPercent = percent
+                temperature = data.temp ?: currentState.temperature,
+                humidity = data.humid ?: currentState.humidity,
+                rainRaw = data.rainVal ?: currentState.rainRaw,
+                timestamp = fixedTs
             )
         }
     }
 
-    fun markAsRead(log: NotificationLog) {
-        viewModelScope.launch { repository.markAsRead(log.id) }
+    private fun triggerAlert(status: Int, level: Double) {
+        val titleRes = when(status) {
+            R.string.status_danger -> R.string.alert_danger
+            R.string.status_warning -> R.string.alert_warning
+            else -> R.string.alert_safe
+        }
+        notificationHelper.sendAlert(
+            context.getString(titleRes),
+            context.getString(R.string.alert_water_level, String.format("%.1f", level)),
+            status
+        )
     }
 
-    fun markAllAsRead() {
-        viewModelScope.launch { repository.markAllAsRead() }
-    }
+    fun dismissRecalibratePopup() { _uiState.update { it.copy(showRecalibratePopup = false) } }
+    fun dismissObstructionPopup() { _uiState.update { it.copy(showObstructionPopup = false) } }
+    fun markAsRead(log: NotificationLog) { viewModelScope.launch { repository.markAsRead(log.id) } }
+    fun markAllAsRead() { viewModelScope.launch { repository.markAllAsRead() } }
 }
