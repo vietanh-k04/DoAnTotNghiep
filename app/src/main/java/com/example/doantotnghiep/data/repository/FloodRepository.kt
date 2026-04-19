@@ -1,10 +1,11 @@
 package com.example.doantotnghiep.data.repository
 
-import com.example.doantotnghiep.db.dao.NotificationDao
+import com.example.doantotnghiep.data.remote.AiResult
 import com.example.doantotnghiep.data.remote.NotificationLog
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.remote.StationConfig
-import com.example.doantotnghiep.data.remote.StationLogs
+import com.example.doantotnghiep.data.remote.TimeframeData
+import com.example.doantotnghiep.db.dao.NotificationDao
 import com.example.doantotnghiep.utils.toSha256
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -116,6 +117,33 @@ class FloodRepository @Inject constructor(
         return emptyList()
     }
 
+    fun observeAiResult(stationId: String?): Flow<AiResult?> = callbackFlow {
+        val ref = dbRef.child("stations").child(stationId ?: "").child("ai_result")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val result = snapshot.getValue(AiResult::class.java)
+                trySend(result)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+    fun observeAiTimeframe(stationId: String?, timeframe: String): Flow<TimeframeData?> = callbackFlow {
+        val ref = dbRef.child("stations").child(stationId ?: "")
+            .child("ai_result").child("timeframes").child(timeframe)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val data = snapshot.getValue(TimeframeData::class.java)
+                trySend(data)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
     suspend fun updateDeviceKey(stationId: String?, rawKey: String?): Boolean {
         return try {
             val hashedKey = rawKey?.toSha256()
@@ -155,11 +183,15 @@ class FloodRepository @Inject constructor(
     fun syncNotificationLogs() {
         scope.launch {
             val maxTimestamp = notificationDao.getMaxTimestamp() ?: 0L
-            
+
             val ref = if (maxTimestamp == 0L) {
-                dbRef.child("notification_logs").orderByChild("timestamp").limitToLast(20)
+                dbRef.child("notification_logs")
+                    .orderByChild("timestamp")
+                    .startAt(System.currentTimeMillis().toDouble())
             } else {
-                dbRef.child("notification_logs").orderByChild("timestamp").startAt((maxTimestamp + 1).toDouble())
+                dbRef.child("notification_logs")
+                    .orderByChild("timestamp")
+                    .startAt((maxTimestamp + 1).toDouble())
             }
 
             ref.addChildEventListener(object : com.google.firebase.database.ChildEventListener {

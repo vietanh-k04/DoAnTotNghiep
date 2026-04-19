@@ -1,6 +1,5 @@
 package com.example.doantotnghiep.ui.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.R
@@ -12,11 +11,9 @@ import com.example.doantotnghiep.data.remote.NotificationLog
 import com.example.doantotnghiep.data.remote.SensorData
 import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
-import com.example.doantotnghiep.notification.NotificationHelper
 import com.example.doantotnghiep.utils.LocationUtils
 import com.example.doantotnghiep.utils.WaterLevelValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +28,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: FloodRepository,
-    private val notificationHelper: NotificationHelper,
-    @ApplicationContext private val context: Context
+    private val repository: FloodRepository
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState
 
@@ -47,7 +41,6 @@ class HomeViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
     private var lastRawWaterLevel = -1.0
-    private var lastStatusResId: Int? = null
     private var smoothedLevel = -1.0
 
     private var observeJob: Job? = null
@@ -148,12 +141,6 @@ class HomeViewModel @Inject constructor(
 
                     val status = determineStatus(displayLevel, config)
 
-                    if (lastStatusResId != null && status != lastStatusResId) {
-                        if (status == R.string.status_danger || status == R.string.status_warning) {
-                            triggerAlert(status, displayLevel)
-                        }
-                    }
-                    lastStatusResId = status
 
                     val trend = calculateTrend(displayLevel)
 
@@ -231,19 +218,6 @@ class HomeViewModel @Inject constructor(
                 timestamp = fixedTs
             )
         }
-    }
-
-    private fun triggerAlert(status: Int, level: Double) {
-        val titleRes = when(status) {
-            R.string.status_danger -> R.string.alert_danger
-            R.string.status_warning -> R.string.alert_warning
-            else -> R.string.alert_safe
-        }
-        notificationHelper.sendAlert(
-            context.getString(titleRes),
-            context.getString(R.string.alert_water_level, String.format("%.1f", level)),
-            status
-        )
     }
 
     fun dismissRecalibratePopup() { _uiState.update { it.copy(showRecalibratePopup = false) } }

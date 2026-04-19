@@ -1,10 +1,8 @@
 package com.example.doantotnghiep.ui.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doantotnghiep.RADIUS_LIMIT
-import com.example.doantotnghiep.data.ai.FloodPredictionHelper
 import com.example.doantotnghiep.data.local.StationMapUiModel
 import com.example.doantotnghiep.data.local.enum.Status
 import com.example.doantotnghiep.data.local.enum.Trend
@@ -14,25 +12,19 @@ import com.example.doantotnghiep.data.remote.StationConfig
 import com.example.doantotnghiep.data.repository.FloodRepository
 import com.example.doantotnghiep.utils.WaterLevelValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
     val floodRepository: FloodRepository,
-    @ApplicationContext private val context: Context
 ) : ViewModel() {
-    private val TAG = "MapViewModel"
-    private val predictionHelper = FloodPredictionHelper(context)
-    private var isModelLoaded = false
+
     private val _stationsMap = MutableStateFlow<Map<String, StationMapUiModel>>(emptyMap())
 
     private val _stationList = MutableStateFlow<List<StationMapUiModel>>(emptyList())
@@ -41,15 +33,7 @@ class MapViewModel @Inject constructor(
     private var loadDataJob: Job? = null
 
     init {
-        predictionHelper.initializeModel(
-            onSuccess = {
-                isModelLoaded = true
-                loadAllStation()
-            },
-            onFailure = {
-                loadAllStation()
-            }
-        )
+        loadAllStation()
     }
 
     private fun loadAllStation() {
@@ -70,7 +54,7 @@ class MapViewModel @Inject constructor(
                     ) { config, sensorData ->
                         Pair(config ?: initialConfig, sensorData)
                     }.collect { (currentConfig, sensorData) ->
-                        if(sensorData != null) {
+                        if (sensorData != null) {
                             val currentTimestamp = sensorData.timestamp ?: 0L
 
                             val configChanged = lastConfig != currentConfig
@@ -79,7 +63,6 @@ class MapViewModel @Inject constructor(
                             if (currentTimestamp == lastTimestamp && !configChanged) {
                                 return@collect
                             }
-
                             if (currentTimestamp != lastTimestamp) {
                                 lastTimestamp = currentTimestamp
                             }
@@ -88,24 +71,23 @@ class MapViewModel @Inject constructor(
                             val rawWaterLevel = (offset - (sensorData.distanceRaw ?: 0)).toDouble()
 
                             val previousData = _stationsMap.value[stationId]?.sensorData
-
-                            val previousLevel = if (configChanged) -1.0 else (previousData?.distanceRaw?.toDouble() ?: -1.0)
+                            val previousLevel = if (configChanged) -1.0
+                                else (previousData?.distanceRaw
+                                    ?.let { (offset - it).toDouble() } ?: -1.0)
 
                             val validationState = WaterLevelValidator.validate(rawWaterLevel, previousLevel)
                             val isInvalid = validationState != WaterLevelState.VALID
 
                             if (isInvalid) {
-                                val currentMap = _stationsMap.value
-                                val existingUiModel = currentMap[stationId]
-                                
+                                val existingUiModel = _stationsMap.value[stationId]
                                 if (existingUiModel != null) {
                                     _stationsMap.update { map ->
                                         val newMap = map.toMutableMap()
                                         newMap[stationId] = existingUiModel.copy(
                                             sensorData = existingUiModel.sensorData.copy(
-                                                temp = sensorData.temp,
-                                                humid = sensorData.humid,
-                                                rainVal = sensorData.rainVal,
+                                                temp      = sensorData.temp,
+                                                humid     = sensorData.humid,
+                                                rainVal   = sensorData.rainVal,
                                                 timestamp = sensorData.timestamp
                                             )
                                         )
@@ -116,80 +98,45 @@ class MapViewModel @Inject constructor(
                                 }
                             }
 
-                            val level = if(rawWaterLevel < 0) 0 else rawWaterLevel.toInt()
+                            val level = if (rawWaterLevel < 0) 0 else rawWaterLevel.toInt()
 
-                            val timestampMs = if (currentTimestamp < 10000000000L) currentTimestamp * 1000 else currentTimestamp
-                            val isStationActive = (System.currentTimeMillis() - timestampMs) <= 3600_000L
+                            val timestampMs = if (currentTimestamp < 10_000_000_000L)
+                                currentTimestamp * 1000 else currentTimestamp
+                            val isStationActive =
+                                (System.currentTimeMillis() - timestampMs) <= 3_600_000L
 
                             val warning = currentConfig.warningThreshold ?: 0.0
-                            val danger = currentConfig.dangerThreshold ?: 0.0
-                            val statusStr = when {
-                                !isStationActive -> Status.OFFLINE
-                                level >= danger -> Status.DANGER
-                                level >= warning -> Status.WARNING
-                                else -> Status.SAFE
+                            val danger  = currentConfig.dangerThreshold  ?: 0.0
+                            val status = when {
+                                !isStationActive    -> Status.OFFLINE
+                                level >= danger     -> Status.DANGER
+                                level >= warning    -> Status.WARNING
+                                else                -> Status.SAFE
                             }
 
-                            var finalTrendValue = Trend.STABLE
-                            var finalTrendPoints = listOf(0.1f, 0.2f, 0.15f, 0.3f)
-
-                            if (isModelLoaded) {
-                                val logsList = floodRepository.getStationLogs(stationId) ?: emptyList()
-                                if (logsList.isNotEmpty()) {
-                                    var sortedLogs = logsList.sortedBy { it.timestamp }.takeLast(24)
-                                    if (sortedLogs.size < 24) {
-                                        val missingCount = 24 - sortedLogs.size
-                                        val firstLog = sortedLogs.first()
-                                        val paddedLogs = mutableListOf<SensorData>()
-                                        val firstTimestamp = firstLog.timestamp ?: System.currentTimeMillis()
-                                        val step = if (firstTimestamp < 10000000000L) 300L else 300_000L
-                                        for (i in missingCount downTo 1) {
-                                            paddedLogs.add(firstLog.copy(timestamp = firstTimestamp - (i * step)))
-                                        }
-                                        paddedLogs.addAll(sortedLogs)
-                                        sortedLogs = paddedLogs
-                                    }
-
-                                    val historicalData = sortedLogs.map { data ->
-                                        val rawTs = data.timestamp ?: System.currentTimeMillis()
-                                        val tsMs = if (rawTs < 10000000000L) rawTs * 1000 else rawTs
-                                        val cal = java.util.Calendar.getInstance().apply { timeInMillis = tsMs }
-                                        val decimalHour = cal.get(java.util.Calendar.HOUR_OF_DAY) + cal.get(java.util.Calendar.MINUTE) / 60f
-                                        val hrSin = kotlin.math.sin(2 * Math.PI * decimalHour / 24).toFloat()
-                                        val hrCos = kotlin.math.cos(2 * Math.PI * decimalHour / 24).toFloat()
-                                        val logRawWaterLevel = (offset - (data.distanceRaw ?: 0)).toFloat().coerceAtLeast(0f)
-                                        com.example.doantotnghiep.data.local.HourlyData(
-                                            rainfallCm = 0f,
-                                            waterVolume = logRawWaterLevel * 10f,
-                                            hrSin = hrSin,
-                                            hrCos = hrCos,
-                                            waterLevelCm = logRawWaterLevel
-                                        )
-                                    }
-
-                                    val predictionsCm = generatePredictions(historicalData, 12, timestampMs)
-                                    
-                                    if (predictionsCm.isNotEmpty()) {
-                                        val firstPred = predictionsCm.first()
-                                        val lastPred = predictionsCm.last()
-                                        finalTrendValue = when {
-                                            lastPred > firstPred + 2f -> Trend.RISING
-                                            lastPred < firstPred - 2f -> Trend.FALLING
-                                            else -> Trend.STABLE
-                                        }
-
-                                        val maxLevel = maxOf(danger.toFloat(), predictionsCm.maxOrNull() ?: 0f, 1f) * 1.2f
-                                        finalTrendPoints = predictionsCm.map { it / maxLevel }
-                                    }
-                                }
+                            val trend = when {
+                                previousLevel < 0            -> Trend.STABLE
+                                rawWaterLevel > previousLevel + 2.0 -> Trend.RISING
+                                rawWaterLevel < previousLevel - 2.0 -> Trend.FALLING
+                                else                               -> Trend.STABLE
                             }
 
                             val uiModel = StationMapUiModel(
-                                sensorData = SensorData(sensorData.timestamp, level, sensorData.temp, sensorData.humid, sensorData.rainVal),
-                                stationConfig = StationConfig(id = currentConfig.id, name = currentConfig.name, latitude = currentConfig.latitude, longitude = currentConfig.longitude, deviceKey = currentConfig.deviceKey, calibrationOffset = currentConfig.calibrationOffset, warningThreshold = currentConfig.warningThreshold, dangerThreshold = currentConfig.dangerThreshold),
-                                trendValue = finalTrendValue,
-                                trendPoints = finalTrendPoints,
-                                status = statusStr,
+                                sensorData    = SensorData(
+                                    sensorData.timestamp, level,
+                                    sensorData.temp, sensorData.humid, sensorData.rainVal
+                                ),
+                                stationConfig = StationConfig(
+                                    id = currentConfig.id, name = currentConfig.name,
+                                    latitude = currentConfig.latitude, longitude = currentConfig.longitude,
+                                    deviceKey = currentConfig.deviceKey,
+                                    calibrationOffset = currentConfig.calibrationOffset,
+                                    warningThreshold = currentConfig.warningThreshold,
+                                    dangerThreshold  = currentConfig.dangerThreshold
+                                ),
+                                trendValue    = trend,
+                                trendPoints   = emptyList(),
+                                status        = status,
                                 coverageRadius = RADIUS_LIMIT.toDouble(),
                             )
 
@@ -198,7 +145,6 @@ class MapViewModel @Inject constructor(
                                 newMap[stationId] = uiModel
                                 newMap
                             }
-
                             _stationList.value = _stationsMap.value.values.toList()
                         }
                     }
@@ -217,63 +163,31 @@ class MapViewModel @Inject constructor(
         longitude: Double?,
         onComplete: (Boolean) -> Unit
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val success = floodRepository.updateStationConfig(stationId, name, offset, warningThreshold, dangerThreshold, latitude, longitude)
-            
-            withContext(Dispatchers.Main) {
-                if (success) {
-                    _stationsMap.update { currentMap ->
-                        val newMap = currentMap.toMutableMap()
-                        val existing = newMap[stationId]
-                        if (existing != null) {
-                            newMap[stationId] = existing.copy(
-                                stationConfig = existing.stationConfig.copy(
-                                    name = name,
-                                    calibrationOffset = offset,
-                                    warningThreshold = warningThreshold,
-                                    dangerThreshold = dangerThreshold,
-                                    latitude = latitude ?: existing.stationConfig.latitude,
-                                    longitude = longitude ?: existing.stationConfig.longitude
-                                )
-                            )
-                        }
-                        newMap
-                    }
-                    _stationList.value = _stationsMap.value.values.toList()
-
-                }
-
-                onComplete(success)
-            }
-        }
-    }
-
-    private suspend fun generatePredictions(historical: List<com.example.doantotnghiep.data.local.HourlyData>, pointsAhead: Int, lastTimestamp: Long): List<Float> {
-        val currentList = historical.toMutableList()
-        val predictions = mutableListOf<Float>()
-        val startCal = java.util.Calendar.getInstance().apply { timeInMillis = lastTimestamp }
-
-        for (i in 1..pointsAhead) {
-            val nextLevelCm = predictionHelper.predictFutureWaterLevel(currentList.takeLast(24))
-            predictions.add(nextLevelCm)
-
-            startCal.add(java.util.Calendar.MINUTE, 5)
-            val nextHour = startCal.get(java.util.Calendar.HOUR_OF_DAY)
-            val nextMinute = startCal.get(java.util.Calendar.MINUTE)
-            val decimalHour = nextHour + nextMinute / 60f
-            val newSin = kotlin.math.sin(2 * Math.PI * decimalHour / 24).toFloat()
-            val newCos = kotlin.math.cos(2 * Math.PI * decimalHour / 24).toFloat()
-
-            currentList.add(
-                com.example.doantotnghiep.data.local.HourlyData(
-                    rainfallCm = 0f,
-                    waterVolume = nextLevelCm * 10f,
-                    hrSin = newSin,
-                    hrCos = newCos,
-                    waterLevelCm = nextLevelCm
-                )
+        viewModelScope.launch {
+            val success = floodRepository.updateStationConfig(
+                stationId, name, offset, warningThreshold, dangerThreshold, latitude, longitude
             )
+            if (success) {
+                _stationsMap.update { currentMap ->
+                    val newMap = currentMap.toMutableMap()
+                    val existing = newMap[stationId]
+                    if (existing != null) {
+                        newMap[stationId] = existing.copy(
+                            stationConfig = existing.stationConfig.copy(
+                                name = name,
+                                calibrationOffset = offset,
+                                warningThreshold  = warningThreshold,
+                                dangerThreshold   = dangerThreshold,
+                                latitude  = latitude  ?: existing.stationConfig.latitude,
+                                longitude = longitude ?: existing.stationConfig.longitude
+                            )
+                        )
+                    }
+                    newMap
+                }
+                _stationList.value = _stationsMap.value.values.toList()
+            }
+            onComplete(success)
         }
-        return predictions
     }
 }

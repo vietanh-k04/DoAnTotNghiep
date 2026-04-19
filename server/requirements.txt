@@ -1,0 +1,10 @@
+firebase-admin>=6.5.0
+requests>=2.31.0
+schedule>=1.2.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+h5py>=3.10.0
+
+# TFLite cần dùng tensorflow-cpu vì model dùng SELECT_TF_OPS (Flex delegate)
+# ai-edge-litert và tflite-runtime KHÔNG hỗ trợ Flex ops
+tensorflow-cpu>=2.19.0

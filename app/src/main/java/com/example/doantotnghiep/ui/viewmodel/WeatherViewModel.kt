@@ -25,7 +25,6 @@ class WeatherViewModel @Inject constructor(val repository: WeatherRepository) : 
 
     fun fetchWeather(location: String, forceRefresh: Boolean = false) {
         val currentTime = System.currentTimeMillis()
-        // Nếu không bắt buộc làm mới, cùng 1 vị trí và thời gian fetch chưa quá 15 phút (900000ms) thì bỏ qua
         if (!forceRefresh && currentLocationQuery == location && _uiState.value is WeatherUiState.Success) {
             if (currentTime - lastFetchTime < 15 * 60 * 1000) {
                 Log.d(TAG, "Data is up to date, skip fetching")
@@ -37,7 +36,6 @@ class WeatherViewModel @Inject constructor(val repository: WeatherRepository) : 
         lastFetchTime = currentTime
 
         viewModelScope.launch(Dispatchers.IO) {
-            // Chỉ hiển thị loading nếu là lần đầu lấy dữ liệu hoặc bị lỗi để tránh giật màn hình khi refresh
             if (_uiState.value !is WeatherUiState.Success) {
                 _uiState.value = WeatherUiState.Loading
             }

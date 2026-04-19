@@ -36,22 +36,18 @@ class HistoryViewModel @Inject constructor(
     private val _stations = MutableStateFlow<List<StationConfig>>(emptyList())
     private val _selectedStation = MutableStateFlow<StationConfig?>(null)
     private val _selectedTimeRange = MutableStateFlow("1 Giờ")
-    
-    // Lắng nghe logs realtime của trạm đang chọn
+
     private val _logs = MutableStateFlow<List<LogUiModel>>(emptyList())
 
     private var logsListener: ValueEventListener? = null
     private var currentStationRef: DatabaseReference? = null
 
-    // Kết hợp tất cả trạng thái lại thành 1 UI State duy nhất
     val uiState: StateFlow<HistoryScreenState> = combine(
         _stations,
         _selectedStation,
         _selectedTimeRange,
         _logs
     ) { stations, selectedStation, timeRange, logs ->
-        
-        // Filter by time range logic (thời gian tính bằng ms)
         val currentTime = System.currentTimeMillis()
         val timeDiff = when (timeRange) {
             "1 Giờ" -> 1L * 60 * 60 * 1000
@@ -62,7 +58,6 @@ class HistoryViewModel @Inject constructor(
         val latestLogTime = logs.maxOfOrNull { it.timestamp } ?: currentTime
         val cutoffTime = latestLogTime - timeDiff
 
-        // Filter logs by cutoff time
         val filteredLogs = logs.filter { it.timestamp >= cutoffTime }
 
         HistoryScreenState(
@@ -103,12 +98,10 @@ class HistoryViewModel @Inject constructor(
     }
 
     private fun observeLogs(station: StationConfig) {
-        // Remove old listener if exists
         currentStationRef?.let { ref ->
             logsListener?.let { ref.removeEventListener(it) }
         }
 
-        // Lấy đúng đường dẫn data trong Firebase
         val ref = dbRef.child("stations").child(station.id ?: "").child("logs")
         currentStationRef = ref
 
@@ -118,7 +111,6 @@ class HistoryViewModel @Inject constructor(
                 val sdfDate = SimpleDateFormat("dd MMM", Locale("vi", "VN"))
                 val sdfTime = SimpleDateFormat("HH:mm a", Locale.getDefault())
 
-                // Ngưỡng cảnh báo lấy từ config của trạm (so sánh theo mực nước)
                 val warnThresh = station.warningThreshold?.toFloat() ?: 20f
                 val dangerThresh = station.dangerThreshold?.toFloat() ?: 50f
 
@@ -167,13 +159,11 @@ class HistoryViewModel @Inject constructor(
                     )
                 }
 
-                // Sắp xếp mới nhất lên đầu (Timestamp lớn nhất)
                 val sortedList = list.sortedByDescending { it.timestamp }
                 _logs.value = sortedList
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // handle error log if needed
             }
         }
         

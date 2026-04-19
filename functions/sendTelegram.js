@@ -8,14 +8,17 @@ exports.sendTelegramAlert = functions.database.ref('/notification_logs/{logId}')
     .onCreate(async (snapshot, context) => {
         const logData = snapshot.val();
 
-        const textMessage = `*${logData.title}*\n${logData.message}`;
+        // Ưu tiên message_long (tin dài từ AI server, format HTML đầy đủ)
+        // Fallback sang message ngắn nếu không có (log từ processData.js)
+        const text = logData.message_long || `<b>${logData.title}</b>\n${logData.message}`;
+
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
         try {
             await axios.post(url, {
                 chat_id: TELEGRAM_CHAT_ID,
-                text: textMessage,
-                parse_mode: "Markdown"
+                text: text,
+                parse_mode: "HTML",  // Dùng HTML vì AI server dùng thẻ <b>
             });
             console.log(`Đã gửi Telegram cho logId: ${context.params.logId}`);
         } catch (error) {

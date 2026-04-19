@@ -32,8 +32,7 @@ class WeatherRepositoryImpl @Inject constructor(
 
             if (response.isSuccessful && response.body() != null) {
                 val dto = response.body()!!
-                
-                // Sử dụng Geocoder để dịch toạ độ thành tên Quận/Huyện thay vì dùng tên Xã của API
+
                 var customLocationName: String? = null
                 try {
                     if (location.contains(",")) {
@@ -47,8 +46,8 @@ class WeatherRepositoryImpl @Inject constructor(
                             
                             if (!addresses.isNullOrEmpty()) {
                                 val address = addresses[0]
-                                val district = address.subAdminArea // Thường trả về Quận / Huyện
-                                val city = address.adminArea // Thường trả về Tỉnh / Thành phố
+                                val district = address.subAdminArea
+                                val city = address.adminArea
                                 
                                 if (!district.isNullOrBlank()) {
                                     customLocationName = district
@@ -63,8 +62,7 @@ class WeatherRepositoryImpl @Inject constructor(
                             }
                         }
                     }
-                } catch (e: Exception) {
-                    // Nếu Geocoder lỗi (mất mạng, không tìm thấy...), fallback về tên của API
+                } catch (_: Exception) {
                 }
 
                 Result.success(mapDtoToUiModel(dto, customLocationName))
@@ -92,8 +90,7 @@ class WeatherRepositoryImpl @Inject constructor(
         val allHours = dto.forecast.forecastDay.flatMap { it.hour }
         val currentHourPrefix = dto.location.localtime.substringBefore(":")
         val startIndex = allHours.indexOfFirst { it.time.startsWith(currentHourPrefix) }.takeIf { it >= 0 } ?: 0
-        
-        // Tìm xác suất mưa của giờ hiện tại để hiển thị cho phần "Hôm nay" được chuẩn xác với lúc này
+
         val currentHourDto = allHours.getOrNull(startIndex)
         val currentChanceOfRain = currentHourDto?.chanceOfRain ?: todayForecast?.day?.dailyChanceOfRain ?: 0
 
@@ -108,7 +105,6 @@ class WeatherRepositoryImpl @Inject constructor(
         
         val dailyForecast = dto.forecast.forecastDay.mapIndexed { index, dayDto ->
             val dayName = if (index == 0) "Hôm nay" else getDayOfWeek(dayDto.date)
-            // Nếu là hôm nay thì lấy tỷ lệ mưa và icon của hiện tại để người dùng không bị bối rối
             val chanceOfRain = if (index == 0) "$currentChanceOfRain%" else "${dayDto.day.dailyChanceOfRain}%"
             val iconUrl = if (index == 0) "https:${dto.current.condition.icon}" else "https:${dayDto.day.condition.icon}"
             

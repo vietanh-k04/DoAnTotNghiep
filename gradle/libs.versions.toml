@@ -24,8 +24,6 @@ playServicesLocationVersion = "21.1.0"
 playServicesMaps = "18.2.0"
 retrofit = "2.9.0"
 roomRuntime = "2.6.1"
-tensorflowLite = "2.14.0"
-tensorflowLiteSelectTfOps = "2.14.0"
 workRuntimeKtx = "2.9.0"
 material3 = "1.4.0"
 hiltWork = "1.2.0"
@@ -45,7 +43,6 @@ firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "fir
 firebase-bom-v32xx = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBomVersion" }
 firebase-database-ktx = { module = "com.google.firebase:firebase-database-ktx" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
-firebase-ml-modeldownloader = { module = "com.google.firebase:firebase-ml-modeldownloader" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -69,8 +66,6 @@ play-services-location-v2110 = { module = "com.google.android.gms:play-services-
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
-tensorflow-lite-select-tf-ops = { module = "org.tensorflow:tensorflow-lite-select-tf-ops", version.ref = "tensorflowLiteSelectTfOps" }
 androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltWork" }
 
 [plugins]

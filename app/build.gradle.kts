@@ -101,12 +101,4 @@ dependencies {
     implementation(libs.lottie.compose)
 
     implementation(platform(libs.firebase.bom.v32xx))
-
-    // Thư viện Firebase Machine Learning
-    implementation(libs.firebase.ml.modeldownloader)
-
-    // Thư viện TensorFlow Lite
-    implementation(libs.tensorflow.lite)
-
-    implementation(libs.tensorflow.lite.select.tf.ops)
 }
