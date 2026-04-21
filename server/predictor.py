@@ -166,20 +166,16 @@ class FloodPredictor:
         current_level = historical_24[-1]["water_level_cm"]
         jump_offset   = None
 
-        # ── Tính tốc độ thay đổi thực tế từ 24 điểm lịch sử ────────────────
-        # Dùng 10 điểm gần nhất để ước lượng tốc độ ổn định hơn
+        # ── Tính tốc độ thay đổi thực tế từ 10 điểm lịch sử ────────────────
         recent = [h["water_level_cm"] for h in historical_24[-10:]]
         if len(recent) >= 2:
-            observed_rate = (recent[-1] - recent[0]) / (len(recent) - 1)  # cm/step
+            initial_rate = (recent[-1] - recent[0]) / (len(recent) - 1)  # cm/step
         else:
-            observed_rate = 0.0
+            initial_rate = 0.0
 
-        # Giới hạn tốc độ thay đổi cho phép:
-        # - Tối thiểu: 1.5 cm/bước (5 phút) = 18 cm/giờ
-        # - Tối đa: 5 cm/bước (5 phút) = 60 cm/giờ (lũ cực mạnh)
-        # - Cho phép 3× tốc độ quan sát thực tế, nhưng trong khoảng [1.5, 5.0]
-        max_delta = max(1.5, min(5.0, abs(observed_rate) * 3 + 1.0))
-        print(f"[Predictor] observed_rate={observed_rate:.2f} cm/step, "
+        # Giới hạn tốc độ thay đổi cho phép (áp dụng khi có mưa)
+        max_delta = max(1.5, min(5.0, abs(initial_rate) * 3 + 1.0))
+        print(f"[Predictor] initial_rate={initial_rate:.2f} cm/step, "
               f"max_delta={max_delta:.2f} cm/step")
 
         prev_corrected = current_level  # dùng để dampen
@@ -193,23 +189,41 @@ class FloodPredictor:
 
             # Apply offset correction
             next_cm_unclamped = next_cm_raw - jump_offset
-
-            # ── Rate dampening: không cho phép thay đổi quá max_delta/bước ──
             delta = next_cm_unclamped - prev_corrected
-            if delta > max_delta:
-                next_cm_unclamped = prev_corrected + max_delta
-            elif delta < -max_delta:
-                next_cm_unclamped = prev_corrected - max_delta
 
-            next_cm = max(0.0, next_cm_unclamped)
+            # Tính toán lượng mưa tương lai
+            last_rain   = current_list[-1]["rainfall_cm"]
+            future_rain = last_rain * 0.5 if last_rain * 0.5 >= 0.1 else 0.0
+
+            # ── Ràng buộc vật lý chặn Autoregressive Drift ──
+            if delta > 0:
+                if future_rain >= 0.5:
+                    # Đang mưa: cho phép tăng tối đa theo max_delta
+                    delta = min(delta, max_delta)
+                else:
+                    # KHÔNG MƯA: Xét xem hiện tại nước có đang dâng hay không?
+                    if initial_rate > 0.2:
+                        # TRƯỜNG HỢP VỠ ĐÊ / XẢ TRÀN / TRIỀU CƯỜNG:
+                        # Nước đang có đà dâng rõ rệt từ trước dù không mưa.
+                        # Cho phép mô hình dự đoán nước tiếp tục dâng, nhưng tốc độ dâng sẽ
+                        # đạt đỉnh và bắt đầu giảm dần đà trong vòng 6 giờ (72 steps) tiếp theo.
+                        momentum_allowance = initial_rate * max(0.0, 1.0 - (step_idx / 72.0))
+                        delta = min(delta, momentum_allowance)
+                    else:
+                        # Trường hợp bình thường: Phẳng lặng hoặc rút, không mưa.
+                        # Tuyệt đối không có lý do vật lý để nước tự động dâng lên.
+                        delta = 0.0
+            elif delta < -max_delta:
+                # Nước rút cũng không được rút quá gắt
+                delta = -max_delta
+
+            next_cm = max(0.0, prev_corrected + delta)
             predictions.append(next_cm)
             prev_corrected = next_cm  # track giá trị đã corrected
 
+            # Tính thời gian cho phần tử sẽ bị đẩy vào current_list
             start_dt     = start_dt + timedelta(minutes=5)
             decimal_hour = start_dt.hour + start_dt.minute / 60.0
-
-            last_rain   = current_list[-1]["rainfall_cm"]
-            future_rain = last_rain * 0.5 if last_rain * 0.5 >= 0.1 else 0.0
 
             # Feed back giá trị đã correct + dampen để tránh drift
             current_list.append({

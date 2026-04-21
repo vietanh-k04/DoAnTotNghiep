@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.ui.screen
+package com.example.doantotnghiep.ui.screen.history
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -20,13 +20,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
@@ -68,6 +75,54 @@ import java.util.Locale
 private const val TAG = "HistoryScreen"
 
 @Composable
+private fun AlertSummary(
+    totalCritical: Int,
+    totalWarning: Int,
+    totalSafe: Int,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(GlassBg)
+            .clickable { onClick() }
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.WarningAmber,
+                contentDescription = null,
+                tint = StatusDanger,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(text = "$totalCritical", color = StatusDanger, fontWeight = FontWeight.Bold)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.WarningAmber,
+                contentDescription = null,
+                tint = StatusWarning,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(text = "$totalWarning", color = StatusWarning, fontWeight = FontWeight.Bold)
+        }
+        // Safe
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = StatusSuccess,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(text = "$totalSafe", color = StatusSuccess, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
 fun HistoryScreen(viewModel: HistoryViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -94,7 +149,8 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                 HistoryContent(
                     state = state,
                     onStationSelected = { viewModel.selectStation(it) },
-                    onTimeRangeSelected = { viewModel.selectTimeRange(it) }
+                    onTimeRangeSelected = { viewModel.selectTimeRange(it) },
+                    onFilterLevelSelected = { viewModel.setFilterLevel(it) }
                 )
             }
         }
@@ -105,7 +161,8 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
 private fun HistoryContent(
     state: HistoryScreenState,
     onStationSelected: (StationConfig) -> Unit,
-    onTimeRangeSelected: (String) -> Unit
+    onTimeRangeSelected: (String) -> Unit,
+    onFilterLevelSelected: (AlertLevel?) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -127,7 +184,26 @@ private fun HistoryContent(
             onTimeRangeSelected = onTimeRangeSelected
         )
 
-        AlertsHistorySection(state.logs, state.selectedStation)
+        Text(
+            text = stringResource(R.string.alert_statistics_title),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextWhite,
+            modifier = Modifier.padding(bottom = 0.dp)
+        )
+        AlertSummary(
+            totalCritical = state.totalCritical,
+            totalWarning = state.totalWarning,
+            totalSafe = state.totalSafe,
+            onClick = { }
+        )
+
+        AlertsHistorySection(
+            alerts = state.logs,
+            selectedStation = state.selectedStation,
+            filterLevel = state.filterLevel,
+            onFilterLevelSelected = onFilterLevelSelected
+        )
     }
 }
 
@@ -484,7 +560,21 @@ private fun ChartFooter(logs: List<LogUiModel>, isInactive: Boolean, latestLogTi
 }
 
 @Composable
-fun AlertsHistorySection(alerts: List<LogUiModel>, selectedStation: StationConfig?) {
+fun AlertsHistorySection(
+    alerts: List<LogUiModel>,
+    selectedStation: StationConfig?,
+    filterLevel: AlertLevel?,
+    onFilterLevelSelected: (AlertLevel?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val filterDisplayText = when (filterLevel) {
+        AlertLevel.CRITICAL -> stringResource(R.string.filter_critical)
+        AlertLevel.WARNING -> stringResource(R.string.filter_warning)
+        AlertLevel.SAFE -> stringResource(R.string.filter_safe)
+        null -> stringResource(R.string.filter_all)
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -497,19 +587,81 @@ fun AlertsHistorySection(alerts: List<LogUiModel>, selectedStation: StationConfi
                 fontWeight = FontWeight.Bold,
                 color = TextWhite
             )
+
+            Box {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { expanded = true }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Lọc: $filterDisplayText",
+                        color = WaterBlue,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Mở bộ lọc",
+                        tint = WaterBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme.copy(
+                        surface = Color(0xFF3F5C64)
+                    ),
+                    shapes = MaterialTheme.shapes.copy(
+                        extraSmall = RoundedCornerShape(12.dp)
+                    )
+                ) {
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Color(0xFF3F5C64))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.filter_all), color = Color.White, fontWeight = FontWeight.SemiBold) },
+                            onClick = { onFilterLevelSelected(null); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.filter_safe), color = StatusSuccess, fontWeight = FontWeight.SemiBold) },
+                            onClick = { onFilterLevelSelected(AlertLevel.SAFE); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.filter_warning), color = StatusWarning, fontWeight = FontWeight.SemiBold) },
+                            onClick = { onFilterLevelSelected(AlertLevel.WARNING); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.filter_critical), color = StatusDanger, fontWeight = FontWeight.SemiBold) },
+                            onClick = { onFilterLevelSelected(AlertLevel.CRITICAL); expanded = false }
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (alerts.isEmpty()) {
-            Text(
-                stringResource(R.string.NO_DATA),
-                color = TextDim, 
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+        val displayedAlerts = if (filterLevel != null) alerts.filter { it.level == filterLevel } else alerts
+
+        if (displayedAlerts.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    stringResource(R.string.NO_DATA),
+                    color = TextDim,
+                    fontSize = 14.sp
+                )
+            }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                alerts.take(15).forEach { alert ->
+                displayedAlerts.forEach { alert ->
                     AlertHistoryItemCard(alert, selectedStation)
                 }
             }

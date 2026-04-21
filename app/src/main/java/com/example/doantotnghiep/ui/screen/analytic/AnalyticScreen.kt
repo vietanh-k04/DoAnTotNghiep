@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.ui.screen
+package com.example.doantotnghiep.ui.screen.analytic
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas

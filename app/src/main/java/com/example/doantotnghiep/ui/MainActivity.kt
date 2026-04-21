@@ -26,10 +26,11 @@ import com.example.doantotnghiep.data.local.enum.ScreenRoute
 import com.example.doantotnghiep.ui.bar.FloodGuardBottomBar
 import com.example.doantotnghiep.ui.bar.FloodGuardTopBar
 import com.example.doantotnghiep.ui.dialog.AlertPopups
-import com.example.doantotnghiep.ui.screen.AnalyticScreen
-import com.example.doantotnghiep.ui.screen.HistoryScreen
-import com.example.doantotnghiep.ui.screen.HomeScreen
-import com.example.doantotnghiep.ui.screen.MapScreenWrapper
+import com.example.doantotnghiep.ui.screen.analytic.AnalyticScreen
+import com.example.doantotnghiep.ui.screen.history.HistoryScreen
+import com.example.doantotnghiep.ui.screen.home.HomeScreen
+import com.example.doantotnghiep.ui.screen.map.MapScreenWrapper
+import com.example.doantotnghiep.ui.screen.splash.SplashScreen
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.theme.DoAnTotNghiepTheme
 import com.example.doantotnghiep.ui.viewmodel.HistoryViewModel
@@ -82,7 +83,7 @@ fun MainLayout(modifier: Modifier = Modifier) {
                     label = "screen_transition"
                 ) { targetScreen ->
                     when(targetScreen) {
-                        ScreenRoute.SPLASH -> com.example.doantotnghiep.ui.screen.SplashScreen(
+                        ScreenRoute.SPLASH -> SplashScreen(
                             onSplashFinished = { currentScreen = ScreenRoute.HOME }
                         )
                         ScreenRoute.HOME -> HomeScreen(

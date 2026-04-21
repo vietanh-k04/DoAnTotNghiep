@@ -48,7 +48,6 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
         } else {
             await alertStateRef.update({ lastWaterLevel: currentLevel });
             await alertStateRef.child('lastStatus').remove();
-            await alertStateRef.child('lastAlertTime').remove();
             return null;
         }
 

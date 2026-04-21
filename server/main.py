@@ -17,10 +17,9 @@ import schedule
 from datetime import datetime, timedelta
 
 import firebase_admin
-from firebase_admin import credentials, db, messaging, storage
+from firebase_admin import credentials, db, storage
 
 from predictor import FloodPredictor
-import notifier
 
 # ─── Cấu hình (đọc từ Environment Variables) ──────────────────────────────
 FIREBASE_DB_URL      = os.environ["FIREBASE_DATABASE_URL"]
@@ -72,16 +71,25 @@ predictor = FloodPredictor(LOCAL_MODEL_PATH, LOCAL_SCALERS_PATH)
 print("[Main] Model TFLite + Scalers sẵn sàng.")
 
 
-# ─── Cooldown: lưu trên RTDB để persist qua restart server ────────────────
+# ─── Cooldown: lưu trong stations/{id}/alertState để không tạo node riêng ──
 def _get_cooldown_ok(station_id: str) -> bool:
-    last_ms   = db.reference(f"flood_alert_state/{station_id}/last_alert_ms").get() or 0
+    alert_ref = db.reference(f"stations/{station_id}/alertState")
+    
+    # Dọn dẹp các trường cũ nếu có (lastAlertMs, lastAiAlertTime) và node root bị thừa
+    db.reference("flood_alert_state").delete()
+    db.reference(f"stations/{station_id}/alertState/lastAlertMs").delete()
+    db.reference(f"stations/{station_id}/alertState/lastAiAlertTime").delete()
+
+    last_ms   = alert_ref.child("lastAlertTime").get() or 0
     elapsed_h = (time.time() * 1000 - last_ms) / 3_600_000
     return elapsed_h >= COOLDOWN_HOURS
 
-def _set_last_alert(station_id: str):
-    db.reference(f"flood_alert_state/{station_id}/last_alert_ms").set(
-        int(time.time() * 1000)
-    )
+def _set_last_alert(station_id: str, water_level_cm: float = 0.0):
+    now_ms = int(time.time() * 1000)
+    db.reference(f"stations/{station_id}/alertState").update({
+        "lastAlertTime":  now_ms,
+        "lastWaterLevel": round(water_level_cm, 1),
+    })
 
 
 # ─── Helpers: Xử lý dữ liệu sensor ───────────────────────────────────────
@@ -269,7 +277,8 @@ def process_station(station_id: str, config: dict):
             )
             # KHÔNG gọi notifier trực tiếp — Firebase Functions đã trigger
             # từ notification_logs, gọi thêm sẽ gửi 2 lần!
-            _set_last_alert(station_id)
+            # Ghi lastAlertMs + lastWaterLevel vào stations/{id}/alertState
+            _set_last_alert(station_id, water_level_cm=current_level)
 
             # Ghi log → Firebase Functions (sendTelegram.js + sendFCM.js)
             # tự trigger và gửi thông báo — chỉ 1 lần duy nhất

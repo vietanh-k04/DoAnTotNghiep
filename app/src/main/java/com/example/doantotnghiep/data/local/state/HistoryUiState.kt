@@ -8,6 +8,10 @@ data class HistoryScreenState(
     val selectedStation: StationConfig? = null,
     val selectedTimeRange: String = "1 Ngày",
     val logs: List<LogUiModel> = emptyList(),
+    val filterLevel: AlertLevel? = null,
+    val totalCritical: Int = 0,
+    val totalWarning: Int = 0,
+    val totalSafe: Int = 0,
     val isLoading: Boolean = true,
     val error: String? = null
 )

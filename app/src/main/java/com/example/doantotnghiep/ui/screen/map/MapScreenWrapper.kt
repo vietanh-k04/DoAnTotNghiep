@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.ui.screen
+package com.example.doantotnghiep.ui.screen.map
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState

@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.ui.screen
+package com.example.doantotnghiep.ui.screen.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -445,7 +446,7 @@ fun GridMetricCard(
     title: String,
     value: String,
     subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     customDraw: @Composable ColumnScope.() -> Unit = {}
 ) {
     GlassCard(modifier = modifier.height(160.dp)) {

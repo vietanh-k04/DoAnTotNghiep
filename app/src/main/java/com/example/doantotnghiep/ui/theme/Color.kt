@@ -95,5 +95,7 @@ val TextDimmer = Color.White.copy(alpha = 0.2f)
 val TrendUpColor = Color(0xFFEF4444)
 val TrendDownColor = Color(0xFF10B981)
 
+val ActiveAccent = Color(0xFF20E3B2) // Vibrant Mint/Teal for standing out
+
 
 

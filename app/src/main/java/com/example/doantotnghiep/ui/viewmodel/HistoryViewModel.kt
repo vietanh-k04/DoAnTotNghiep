@@ -32,6 +32,7 @@ class HistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val TAG = "HistoryViewModel"
+    private val _filterLevel = MutableStateFlow<AlertLevel?>(null)
 
     private val _stations = MutableStateFlow<List<StationConfig>>(emptyList())
     private val _selectedStation = MutableStateFlow<StationConfig?>(null)
@@ -46,8 +47,9 @@ class HistoryViewModel @Inject constructor(
         _stations,
         _selectedStation,
         _selectedTimeRange,
-        _logs
-    ) { stations, selectedStation, timeRange, logs ->
+        _logs,
+        _filterLevel
+    ) { stations, selectedStation, timeRange, logs, filterLevel ->
         val currentTime = System.currentTimeMillis()
         val timeDiff = when (timeRange) {
             "1 Giờ" -> 1L * 60 * 60 * 1000
@@ -58,13 +60,21 @@ class HistoryViewModel @Inject constructor(
         val latestLogTime = logs.maxOfOrNull { it.timestamp } ?: currentTime
         val cutoffTime = latestLogTime - timeDiff
 
-        val filteredLogs = logs.filter { it.timestamp >= cutoffTime }
+        val timeFilteredLogs = logs.filter { it.timestamp >= cutoffTime }
+
+        val totalCritical = timeFilteredLogs.count { it.level == AlertLevel.CRITICAL }
+        val totalWarning = timeFilteredLogs.count { it.level == AlertLevel.WARNING }
+        val totalSafe = timeFilteredLogs.count { it.level == AlertLevel.SAFE }
 
         HistoryScreenState(
             stations = stations,
             selectedStation = selectedStation,
             selectedTimeRange = timeRange,
-            logs = filteredLogs,
+            logs = timeFilteredLogs,
+            filterLevel = filterLevel,
+            totalCritical = totalCritical,
+            totalWarning = totalWarning,
+            totalSafe = totalSafe,
             isLoading = stations.isEmpty(),
             error = null
         )
@@ -95,6 +105,10 @@ class HistoryViewModel @Inject constructor(
 
     fun selectTimeRange(range: String) {
         _selectedTimeRange.value = range
+    }
+
+    fun setFilterLevel(level: AlertLevel?) {
+        _filterLevel.value = level
     }
 
     private fun observeLogs(station: StationConfig) {

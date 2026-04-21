@@ -138,5 +138,11 @@
     <string name="TEMP_LABEL">Nhiệt độ: </string>
     <string name="HUMID_LABEL">Độ ẩm: </string>
     <string name="RAIN_LABEL">Khả năng mưa: </string>
+    <string name="filter_all">Tất cả</string>
+    <string name="filter_safe">An toàn</string>
+    <string name="filter_warning">Cảnh báo</string>
+    <string name="filter_critical">Nguy hiểm</string>
+    <string name="filter">Lọc</string>
+    <string name="alert_statistics_title">Thống kê cảnh báo</string>
     <string name="WATER_LEVEL_FORMAT">Mực nước: %d cm</string>
 </resources>

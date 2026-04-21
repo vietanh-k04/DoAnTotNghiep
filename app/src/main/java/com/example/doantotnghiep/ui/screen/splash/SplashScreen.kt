@@ -1,4 +1,4 @@
-package com.example.doantotnghiep.ui.screen
+package com.example.doantotnghiep.ui.screen.splash
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
