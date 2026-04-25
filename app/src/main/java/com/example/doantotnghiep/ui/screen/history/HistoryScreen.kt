@@ -597,7 +597,7 @@ fun AlertsHistorySection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Lọc: $filterDisplayText",
+                        text = stringResource(R.string.history_filter_prefix, filterDisplayText),
                         color = WaterBlue,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
@@ -713,8 +713,13 @@ fun AlertHistoryItemCard(alert: LogUiModel, selectedStation: StationConfig?) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                val titleText = when (alert.level) {
+                    AlertLevel.CRITICAL -> stringResource(R.string.history_alert_critical)
+                    AlertLevel.WARNING -> stringResource(R.string.history_alert_warning)
+                    AlertLevel.SAFE -> stringResource(R.string.history_alert_safe)
+                }
                 Text(
-                    alert.title,
+                    titleText,
                     fontWeight = FontWeight.Bold,
                     color = TextWhite,
                     fontSize = 16.sp

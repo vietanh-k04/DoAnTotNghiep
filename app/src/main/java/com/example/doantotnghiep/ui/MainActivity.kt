@@ -2,6 +2,7 @@ package com.example.doantotnghiep.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -18,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +33,10 @@ import com.example.doantotnghiep.ui.screen.history.HistoryScreen
 import com.example.doantotnghiep.ui.screen.home.HomeScreen
 import com.example.doantotnghiep.ui.screen.map.MapScreenWrapper
 import com.example.doantotnghiep.ui.screen.splash.SplashScreen
+import com.example.doantotnghiep.ui.screen.setting.SettingsScreen
+import com.example.doantotnghiep.ui.screen.language.LanguageScreen
+import com.example.doantotnghiep.ui.screen.guide.GuideScreen
+import androidx.compose.ui.platform.LocalUriHandler
 import com.example.doantotnghiep.ui.theme.BackgroundLight
 import com.example.doantotnghiep.ui.theme.DoAnTotNghiepTheme
 import com.example.doantotnghiep.ui.viewmodel.HistoryViewModel
@@ -38,12 +44,13 @@ import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
 import com.example.doantotnghiep.ui.viewmodel.MapViewModel
 import com.example.doantotnghiep.ui.viewmodel.WeatherViewModel
 import com.example.doantotnghiep.utils.rememberLocationState
+import com.example.doantotnghiep.utils.LocaleHelper
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
 
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         registerMessagingNotification()
@@ -59,7 +66,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainLayout(modifier: Modifier = Modifier) {
-    var currentScreen by remember { mutableStateOf(ScreenRoute.SPLASH) }
+    var currentScreen by rememberSaveable { mutableStateOf(ScreenRoute.SPLASH) }
 
     val locationState = rememberLocationState()
 
@@ -70,9 +77,22 @@ fun MainLayout(modifier: Modifier = Modifier) {
 
     val homeUiState by homeViewModel.uiState.collectAsState()
 
+    val hideBars = currentScreen == ScreenRoute.SPLASH || 
+                   currentScreen == ScreenRoute.SETTINGS ||
+                   currentScreen == ScreenRoute.LANGUAGE ||
+                   currentScreen == ScreenRoute.GUIDE
+
+    val uriHandler = LocalUriHandler.current
+
     Scaffold(
         modifier = modifier,
-        topBar = { if (currentScreen != ScreenRoute.SPLASH) FloodGuardTopBar() },
+        topBar = { 
+            if (!hideBars) {
+                FloodGuardTopBar(
+                    onMenuClick = { currentScreen = ScreenRoute.SETTINGS }
+                ) 
+            }
+        },
         containerColor = BackgroundLight,
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -103,11 +123,27 @@ fun MainLayout(modifier: Modifier = Modifier) {
                         )
                         ScreenRoute.ANALYTIC -> AnalyticScreen()
                         ScreenRoute.HISTORY -> HistoryScreen(viewModel = historyViewModel)
+                        ScreenRoute.SETTINGS -> SettingsScreen(
+                            onBackClick = { currentScreen = ScreenRoute.HOME },
+                            onLanguageClick = { currentScreen = ScreenRoute.LANGUAGE },
+                            onGuideClick = { currentScreen = ScreenRoute.GUIDE },
+                            onTelegramClick = { uriHandler.openUri("https://t.me/+rmatAR5gXwg2NWM9") }
+                        )
+                        ScreenRoute.LANGUAGE -> LanguageScreen(
+                            currentLanguageCode = LocaleHelper.getLocale(),
+                            onLanguageSelected = { code ->
+                                LocaleHelper.setLocale(code)
+                            },
+                            onBackClick = { currentScreen = ScreenRoute.SETTINGS }
+                        )
+                        ScreenRoute.GUIDE -> GuideScreen(
+                            onNavigateBack = { currentScreen = ScreenRoute.SETTINGS }
+                        )
                     }
                 }
             }
 
-            if (currentScreen != ScreenRoute.SPLASH) {
+            if (!hideBars) {
                 AlertPopups(
                     showRecalibrate = homeUiState.showRecalibratePopup,
                     showObstruction = homeUiState.showObstructionPopup,
@@ -118,7 +154,7 @@ fun MainLayout(modifier: Modifier = Modifier) {
             }
 
             AnimatedVisibility(
-                visible = currentScreen != ScreenRoute.SPLASH,
+                visible = !hideBars,
                 enter = fadeIn(animationSpec = tween(800)),
                 exit = fadeOut(animationSpec = tween(800)),
                 modifier = Modifier.align(Alignment.BottomCenter)

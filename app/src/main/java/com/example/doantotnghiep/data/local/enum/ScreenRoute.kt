@@ -6,4 +6,7 @@ enum class ScreenRoute {
     MAP,
     ANALYTIC,
     HISTORY,
+    SETTINGS,
+    LANGUAGE,
+    GUIDE
 }

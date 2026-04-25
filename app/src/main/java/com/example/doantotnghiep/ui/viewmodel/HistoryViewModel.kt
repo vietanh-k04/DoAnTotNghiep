@@ -150,17 +150,11 @@ class HistoryViewModel @Inject constructor(
                         else -> AlertLevel.SAFE                
                     }
 
-                    val title = when (level) {
-                        AlertLevel.CRITICAL -> "Cảnh Báo Ngập Nặng"
-                        AlertLevel.WARNING -> "Mực Nước Dâng Cao"
-                        AlertLevel.SAFE -> "Mức Nước An Toàn"
-                    }
-
                     list.add(
                         LogUiModel(
                             id = child.key ?: "",
-                            title = title,
-                            description = "Nhiệt độ: ${temp}°C | Độ ẩm: ${humid}% | Mưa: $rainVal",
+                            title = "",
+                            description = "",
                             date = sdfDate.format(dateObj),
                             time = sdfTime.format(dateObj),
                             level = level,

@@ -26,12 +26,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.doantotnghiep.R
 import com.example.doantotnghiep.ui.theme.RedDanger
 import com.example.doantotnghiep.ui.theme.WaterBlue
 
@@ -83,7 +85,7 @@ fun NoStationDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Không tìm thấy trạm",
+                    text = stringResource(R.string.no_station_title),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -93,7 +95,7 @@ fun NoStationDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Hiện tại đang không có trạm nào xung quanh bạn. Hãy bấm chuyển ngay để xem thời tiết khu vực!",
+                    text = stringResource(R.string.no_station_desc),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
@@ -116,7 +118,7 @@ fun NoStationDialog(
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
-                        Text("Bỏ qua", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.no_station_skip), fontWeight = FontWeight.Bold)
                     }
 
                     Button(
@@ -130,7 +132,7 @@ fun NoStationDialog(
                             contentColor = Color.White
                         )
                     ) {
-                        Text("Chuyển ngay", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.no_station_switch), fontWeight = FontWeight.Bold)
                     }
                 }
             }

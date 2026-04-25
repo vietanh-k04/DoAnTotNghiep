@@ -437,7 +437,7 @@ fun StationMapItemCard(station: StationMapUiModel, onSingleClick: () -> Unit?, o
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            /*Spacer(Modifier.height(16.dp))
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column {
@@ -449,7 +449,7 @@ fun StationMapItemCard(station: StationMapUiModel, onSingleClick: () -> Unit?, o
 
                 val trendChartColor = if (station.status == Status.OFFLINE) Color.Gray else trendColor(station.trendValue)
                 MiniTrendChart(trendColor = trendChartColor, points = if (station.status == Status.OFFLINE) emptyList() else station.trendPoints)
-            }
+            }*/
         }
     }
 }

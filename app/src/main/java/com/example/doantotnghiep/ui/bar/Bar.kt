@@ -61,7 +61,10 @@ import com.example.doantotnghiep.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
+fun FloodGuardTopBar(
+    viewmodel: HomeViewModel = hiltViewModel(),
+    onMenuClick: () -> Unit = {}
+) {
     val unreadCount by viewmodel.unreadCount.collectAsState()
     val notifications by viewmodel.notification.collectAsState()
 
@@ -96,7 +99,7 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "HỆ THỐNG CẢNH BÁO LŨ",
+                            text = stringResource(R.string.app_subtitle),
                             color = Color.White.copy(alpha = 0.8f),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 10.sp,
@@ -106,7 +109,7 @@ fun FloodGuardTopBar(viewmodel: HomeViewModel = hiltViewModel()) {
                 }
             },
             navigationIcon = {
-                IconButton(onClick = {}) {
+                IconButton(onClick = onMenuClick) {
                     Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.bar_menu), tint = Color.White)
                 }
             },

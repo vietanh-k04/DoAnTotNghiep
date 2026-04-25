@@ -17,12 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.doantotnghiep.R
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
 import com.example.doantotnghiep.ui.theme.VividBlue
@@ -45,7 +47,7 @@ fun CalibrationMeasuringDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Đang hiệu chuẩn...", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.calib_measuring_title), color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 Box(contentAlignment = Alignment.Center) {
@@ -56,7 +58,7 @@ fun CalibrationMeasuringDialog(
                         strokeWidth = 6.dp,
                     )
                     Text(
-                        text = "$progressCount/5", 
+                        text = String.format(java.util.Locale.getDefault(), stringResource(R.string.calib_measuring_progress), progressCount, 5), 
                         color = TextWhite, 
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -65,7 +67,7 @@ fun CalibrationMeasuringDialog(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "Đang thu thập dữ liệu từ trạm IoT.\nVui lòng đợi...", 
+                    text = stringResource(R.string.calib_measuring_desc), 
                     color = TextDim, 
                     textAlign = TextAlign.Center, 
                     fontSize = 14.sp
@@ -78,7 +80,7 @@ fun CalibrationMeasuringDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
-                    Text("Hủy")
+                    Text(stringResource(R.string.calib_btn_cancel))
                 }
             }
         }

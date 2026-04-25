@@ -26,6 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.doantotnghiep.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,13 +46,21 @@ import com.example.doantotnghiep.utils.appBackground
 @Preview
 @Composable
 private fun Test() {
-    SettingsScreen {
-
-    }
+    SettingsScreen(
+        onBackClick = {},
+        onLanguageClick = {},
+        onGuideClick = {},
+        onTelegramClick = {}
+    )
 }
 
 @Composable
-fun SettingsScreen(onBackClick: () -> Unit) {
+fun SettingsScreen(
+    onBackClick: () -> Unit,
+    onLanguageClick: () -> Unit,
+    onGuideClick: () -> Unit,
+    onTelegramClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -80,7 +90,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                 Spacer(modifier = Modifier.weight(1f))
                 
                 Text(
-                    text = "Settings",
+                    text = stringResource(R.string.settings_title),
                     color = TextWhite,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -96,24 +106,24 @@ fun SettingsScreen(onBackClick: () -> Unit) {
             ) {
                 SettingCard(
                     icon = Icons.Rounded.Language,
-                    title = "Ngôn ngữ",
-                    subtitle = "Tiếng Việt",
-                    onClick = { /* TODO */ }
+                    title = stringResource(R.string.settings_language),
+                    subtitle = stringResource(R.string.settings_language_desc),
+                    onClick = onLanguageClick
                 )
 
                 SettingCard(
                     icon = Icons.Rounded.Sensors,
-                    title = "Hướng dẫn kết nối thiết bị IoT",
-                    subtitle = "Setup manuals & pairing",
-                    onClick = { /* TODO */ }
+                    title = stringResource(R.string.settings_guide),
+                    subtitle = stringResource(R.string.settings_guide_desc),
+                    onClick = onGuideClick
                 )
 
                 SettingCard(
                     icon = Icons.Rounded.ChatBubbleOutline,
-                    title = "Cộng đồng Telegram dự báo",
-                    subtitle = "Join discussions & alerts",
+                    title = stringResource(R.string.settings_telegram),
+                    subtitle = stringResource(R.string.settings_telegram_desc),
                     trailingIcon = Icons.Rounded.OpenInNew,
-                    onClick = { /* TODO */ }
+                    onClick = onTelegramClick
                 )
             }
 
@@ -125,7 +135,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                 modifier = Modifier.padding(bottom = 32.dp)
             ) {
                 Text(
-                    text = "FLOODGUARD V2.4.1",
+                    text = stringResource(R.string.settings_app_version),
                     color = TextDim,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -133,7 +143,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Created by Vanh Vanh",
+                    text = stringResource(R.string.settings_app_author),
                     color = TextDim.copy(alpha = 0.5f),
                     fontSize = 14.sp
                 )

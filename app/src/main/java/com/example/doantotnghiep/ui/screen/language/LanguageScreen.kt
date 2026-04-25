@@ -25,7 +25,10 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.doantotnghiep.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,30 +40,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.doantotnghiep.data.local.LanguageItem
 import com.example.doantotnghiep.ui.theme.ActiveAccent
 import com.example.doantotnghiep.ui.theme.GlassBg
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
 import com.example.doantotnghiep.utils.appBackground
 
-data class LanguageItem(
-    val code: String,
-    val nativeName: String,
-    val englishName: String
-)
-
-val languages = listOf(
-    LanguageItem("vi", "Tiếng Việt", "Vietnamese"),
-    LanguageItem("en", "English", "English"),
-    LanguageItem("fr", "Français", "French"),
-    LanguageItem("ja", "日本語", "Japanese"),
-    LanguageItem("ko", "한국어", "Korean"),
-    LanguageItem("de", "Deutsch", "German"),
-    LanguageItem("es", "Español", "Spanish"),
-    LanguageItem("zh", "中文", "Chinese"),
-    LanguageItem("th", "ไทย", "Thai"),
-    LanguageItem("ru", "Русский", "Russian")
-)
+@Composable
+fun getLanguages(): List<LanguageItem> {
+    return listOf(
+        LanguageItem("vi", stringResource(R.string.language_vi), stringResource(R.string.language_vi_en)),
+        LanguageItem("en", stringResource(R.string.language_en), stringResource(R.string.language_en_en)),
+        LanguageItem("fr", stringResource(R.string.language_fr), stringResource(R.string.language_fr_en)),
+        LanguageItem("ja", stringResource(R.string.language_ja), stringResource(R.string.language_ja_en)),
+        LanguageItem("ko", stringResource(R.string.language_ko), stringResource(R.string.language_ko_en)),
+        LanguageItem("de", stringResource(R.string.language_de), stringResource(R.string.language_de_en)),
+        LanguageItem("es", stringResource(R.string.language_es), stringResource(R.string.language_es_en)),
+        LanguageItem("zh", stringResource(R.string.language_zh), stringResource(R.string.language_zh_en)),
+        LanguageItem("th", stringResource(R.string.language_th), stringResource(R.string.language_th_en)),
+        LanguageItem("ru", stringResource(R.string.language_ru), stringResource(R.string.language_ru_en))
+    )
+}
 
 @Preview
 @Composable
@@ -105,13 +106,14 @@ fun LanguageScreen(
                 Spacer(modifier = Modifier.width(16.dp))
                 
                 Text(
-                    text = "Select Language",
+                    text = stringResource(R.string.language_select),
                     color = TextWhite,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
+            val languages = getLanguages()
             // Language List
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -152,7 +154,6 @@ fun LanguageCard(
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Text content
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = language.nativeName,
@@ -160,17 +161,18 @@ fun LanguageCard(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
                     text = language.englishName,
-                    color = TextDim,
+                    color = if (isSelected) ActiveAccent else TextWhite,
                     fontSize = 14.sp
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Checkbox indicator
             Box(
                 modifier = Modifier
                     .size(24.dp)
@@ -195,10 +197,4 @@ fun LanguageCard(
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun PreviewLanguageScreen() {
-    LanguageScreen()
 }

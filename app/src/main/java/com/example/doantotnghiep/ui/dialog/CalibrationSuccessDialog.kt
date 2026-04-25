@@ -21,11 +21,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.doantotnghiep.R
 import com.example.doantotnghiep.ui.theme.TextWhite
 import com.example.doantotnghiep.ui.theme.VividBlue
 
@@ -50,9 +52,9 @@ fun CalibrationSuccessDialog(
             ) {
                 Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Đo thành công!", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.calib_success_title), color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Khoảng cách hiệu chuẩn: $finalCalibratedValue cm", color = VividBlue, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(String.format(java.util.Locale.getDefault(), stringResource(R.string.calib_success_desc), finalCalibratedValue.toString()), color = VividBlue, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(32.dp))
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -62,7 +64,7 @@ fun CalibrationSuccessDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Text("Hủy")
+                        Text(stringResource(R.string.calib_btn_cancel))
                     }
                     Button(
                         onClick = onUpdate,
@@ -70,7 +72,7 @@ fun CalibrationSuccessDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Text("Cập nhật", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(stringResource(R.string.calib_btn_update), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

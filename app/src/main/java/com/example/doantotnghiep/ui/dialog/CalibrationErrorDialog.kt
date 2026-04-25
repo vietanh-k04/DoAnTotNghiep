@@ -21,12 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.doantotnghiep.R
 import com.example.doantotnghiep.ui.theme.StatusDanger
 import com.example.doantotnghiep.ui.theme.TextDim
 import com.example.doantotnghiep.ui.theme.TextWhite
@@ -52,9 +54,9 @@ fun CalibrationErrorDialog(
             ) {
                 Icon(Icons.Rounded.Error, contentDescription = null, tint = StatusDanger, modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Đo thất bại", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.calib_error_title), color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Dữ liệu trả về từ trạm không ổn định do nhiễu hoặc sai số quá lớn. Vui lòng thử lại.", color = TextDim, fontSize = 14.sp, textAlign = TextAlign.Center)
+                Text(stringResource(R.string.calib_error_desc), color = TextDim, fontSize = 14.sp, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -64,7 +66,7 @@ fun CalibrationErrorDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Text("Hủy")
+                        Text(stringResource(R.string.calib_btn_cancel))
                     }
                     Button(
                         onClick = onRetry,
@@ -72,7 +74,7 @@ fun CalibrationErrorDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Text("Đo lại", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(stringResource(R.string.calib_btn_retry), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

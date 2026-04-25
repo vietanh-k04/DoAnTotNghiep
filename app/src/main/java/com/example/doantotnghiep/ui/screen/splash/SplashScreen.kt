@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,7 +65,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
             Text(
                 modifier = Modifier.padding(horizontal = 40.dp),
-                text = "ỨNG DỤNG CẢNH BÁO LŨ SỚM",
+                text = stringResource(R.string.app_splash_subtitle),
                 textAlign = TextAlign.Center,
                 color = BlueRecorded,
                 fontSize = 30.sp,
