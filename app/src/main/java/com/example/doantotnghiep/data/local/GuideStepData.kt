@@ -7,5 +7,6 @@ data class GuideStepData(
     val title: String,
     val description: String,
     val icon: ImageVector? = null,
-    val iconTint: Color = Color.Unspecified
+    val iconTint: Color = Color.Unspecified,
+    val imageRes: Int? = null
 )

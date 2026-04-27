@@ -125,7 +125,7 @@ class AnalyticViewModel @Inject constructor(
 
         val lastRaw = sorted.last().timestamp ?: System.currentTimeMillis()
         val lastMs  = if (lastRaw < 10_000_000_000L) lastRaw * 1000 else lastRaw
-        val isActive = (System.currentTimeMillis() - lastMs) <= 3_600_000L
+        val isActive = true // (System.currentTimeMillis() - lastMs) <= 3_600_000L
 
         val maxLevel = maxOf(
             danger * 1.2f,

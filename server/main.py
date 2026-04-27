@@ -264,15 +264,27 @@ def process_station(station_id: str, config: dict):
             fcm_status = "DANGER" if is_danger else "WARNING"
             icon       = "🚨" if is_danger else "⚠️"
 
+            # Tính toán thời gian dự báo
+            dt_now = datetime.fromtimestamp(last_ts / 1000)
+            dt_flood = dt_now + timedelta(minutes=minutes)
+            flood_time_str = dt_flood.strftime("%H:%M")
+
+            hours_val = minutes // 60
+            mins_val = minutes % 60
+            if hours_val > 0:
+                duration_str = f"{hours_val} giờ {mins_val} phút" if mins_val > 0 else f"{hours_val} giờ"
+            else:
+                duration_str = f"{minutes} phút"
+
             # Nội dung ngắn → FCM body & Telegram ngắn
             fcm_title = f"{icon} CẢNH BÁO NGẬP LỤT — Trạm {name}"
-            fcm_body  = f"Dự báo đạt {level}cm trong {minutes} phút nữa!"
+            fcm_body  = f"Dự báo đạt {level}cm trong {duration_str} nữa (lúc {flood_time_str})!"
             # Nội dung dài → sendTelegram.js sẽ dùng field "message_long"
             tele_long = (
                 f"{icon} <b>DỰ BÁO NGẬP LỤT — Trạm {name}</b>\n\n"
                 f"📍 Dự kiến mực nước đạt <b>{level}cm</b> "
                 f"(ngưỡng báo động: {danger:.0f}cm)\n"
-                f"⏱ Trong khoảng <b>{minutes} phút</b> nữa\n\n"
+                f"⏱ Trong khoảng <b>{duration_str}</b> nữa (lúc <b>{flood_time_str}</b>)\n\n"
                 f"🚨 Hãy chuẩn bị ứng phó ngay!"
             )
             # KHÔNG gọi notifier trực tiếp — Firebase Functions đã trigger

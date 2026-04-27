@@ -1,5 +1,6 @@
 package com.example.doantotnghiep.ui.screen.guide
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.doantotnghiep.R
@@ -172,48 +175,20 @@ fun TimelineItem(
                 color = TextDim,
                 fontSize = 14.sp,
                 lineHeight = 22.sp,
-                modifier = Modifier.padding(bottom = if (step.icon != null) 16.dp else 0.dp)
+                modifier = Modifier.padding(bottom = if (step.imageRes != null) 16.dp else 0.dp)
             )
 
-            // Image Placeholder Frame
-            if (step.icon != null) {
-                Box(
+            if (step.imageRes != null) {
+                Image(
+                    painter = painterResource(id = step.imageRes),
+                    contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.Black.copy(alpha = 0.2f))
                         .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .background(Color.White.copy(alpha = 0.1f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = step.icon,
-                                contentDescription = "Hình minh họa",
-                                tint = step.iconTint,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Text(
-                            text = stringResource(R.string.guide_image_placeholder),
-                            color = TextDim.copy(alpha = 0.8f),
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                    contentScale = ContentScale.Crop
+                )
             }
         }
     }
@@ -225,30 +200,27 @@ fun getGuideSteps(): List<GuideStepData> {
         GuideStepData(
             title = stringResource(R.string.guide_step1_title),
             description = stringResource(R.string.guide_step1_desc),
-            icon = Icons.Rounded.Power,
-            iconTint = Color(0xFFF59E0B)
+            imageRes = R.drawable.buoc1
         ),
         GuideStepData(
             title = stringResource(R.string.guide_step2_title),
             description = stringResource(R.string.guide_step2_desc),
-            icon = null
+            imageRes = R.drawable.buoc2
         ),
         GuideStepData(
             title = stringResource(R.string.guide_step3_title),
             description = stringResource(R.string.guide_step3_desc),
-            icon = Icons.Rounded.Sensors,
-            iconTint = Color(0xFF0EA5E9)
+            imageRes = R.drawable.buoc3
         ),
         GuideStepData(
             title = stringResource(R.string.guide_step4_title),
             description = stringResource(R.string.guide_step4_desc),
-            icon = null
+            imageRes = R.drawable.buoc4
         ),
         GuideStepData(
             title = stringResource(R.string.guide_step5_title),
             description = stringResource(R.string.guide_step5_desc),
-            icon = Icons.Rounded.Analytics,
-            iconTint = Color(0xFF10B981)
+            imageRes = R.drawable.buoc5
         )
     )
 }
