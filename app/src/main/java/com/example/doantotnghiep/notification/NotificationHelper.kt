@@ -11,6 +11,9 @@ import androidx.core.app.NotificationCompat
 import com.example.doantotnghiep.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import android.content.Intent
+import android.app.PendingIntent
+import com.example.doantotnghiep.ui.MainActivity
 
 @Suppress("DEPRECATION")
 class NotificationHelper @Inject constructor(@ApplicationContext private val context: Context) {
@@ -26,6 +29,14 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
     }
 
     fun sendAlert(title: String, message: String, status: Int) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("open_dialog", true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_water_drop)
             .setContentTitle(title)
@@ -33,6 +44,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setGroup("FLOOD_ALERTS")
             .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
 
         if(status == R.string.status_danger) {
             builder.setSubText(context.getString(R.string.alert_danger))

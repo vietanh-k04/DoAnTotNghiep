@@ -33,6 +33,13 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState
 
+    private val _showNotificationDialog = MutableStateFlow(false)
+    val showNotificationDialog: StateFlow<Boolean> = _showNotificationDialog
+
+    fun setNotificationDialogVisible(visible: Boolean) {
+        _showNotificationDialog.value = visible
+    }
+
     private val _notifications = MutableStateFlow<List<NotificationLog>>(emptyList())
     val notification: StateFlow<List<NotificationLog>> = _notifications
 

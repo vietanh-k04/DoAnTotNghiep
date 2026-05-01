@@ -226,7 +226,7 @@ fun NotificaionItem(log: NotificationLog, onClick: () -> Unit) {
                     text = log.message,
                     fontSize = 13.sp,
                     color = messageColor,
-                    maxLines = 2,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 18.sp
                 )

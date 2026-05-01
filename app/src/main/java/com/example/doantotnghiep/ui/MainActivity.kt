@@ -1,9 +1,11 @@
 package com.example.doantotnghiep.ui
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,22 +54,61 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    private val navigateToScreen = MutableStateFlow<ScreenRoute?>(null)
+    private val openDialog = MutableStateFlow(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         registerMessagingNotification()
 
+        handleIntent(intent)
+
         setContent {
+            val targetScreen by navigateToScreen.collectAsState()
+            val shouldOpenDialog by openDialog.collectAsState()
             DoAnTotNghiepTheme {
-                MainLayout()
+                MainLayout(
+                    targetScreen = targetScreen,
+                    openDialog = shouldOpenDialog,
+                    onTargetHandled = { navigateToScreen.value = null },
+                    onDialogHandled = { openDialog.value = false }
+                )
             }
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.getStringExtra("open_screen") == "HISTORY") {
+            navigateToScreen.value = ScreenRoute.HISTORY
+        }
+        if (intent?.getBooleanExtra("open_dialog", false) == true) {
+            openDialog.value = true
+        }
+    }
 }
 
 @Composable
-fun MainLayout(modifier: Modifier = Modifier) {
+fun MainLayout(
+    modifier: Modifier = Modifier,
+    targetScreen: ScreenRoute? = null,
+    openDialog: Boolean = false,
+    onTargetHandled: () -> Unit = {},
+    onDialogHandled: () -> Unit = {}
+) {
     var currentScreen by rememberSaveable { mutableStateOf(ScreenRoute.SPLASH) }
+
+    LaunchedEffect(targetScreen) {
+        if (targetScreen != null) {
+            currentScreen = targetScreen
+            onTargetHandled()
+        }
+    }
 
     val locationState = rememberLocationState()
 
@@ -74,6 +116,13 @@ fun MainLayout(modifier: Modifier = Modifier) {
     val homeViewModel: HomeViewModel = hiltViewModel()
     val mapViewModel: MapViewModel = hiltViewModel()
     val weatherViewModel: WeatherViewModel = hiltViewModel()
+
+    LaunchedEffect(openDialog) {
+        if (openDialog) {
+            homeViewModel.setNotificationDialogVisible(true)
+            onDialogHandled()
+        }
+    }
 
     val homeUiState by homeViewModel.uiState.collectAsState()
 

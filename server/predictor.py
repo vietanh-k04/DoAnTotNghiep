@@ -192,30 +192,42 @@ class FloodPredictor:
             delta = next_cm_unclamped - prev_corrected
 
             # Tính toán lượng mưa tương lai
+            # Giữ nguyên lượng mưa trong 30 phút đầu (6 steps), sau đó giảm từ từ (0.9x)
             last_rain   = current_list[-1]["rainfall_cm"]
-            future_rain = last_rain * 0.5 if last_rain * 0.5 >= 0.1 else 0.0
+            if step_idx < 6:
+                future_rain = last_rain
+            else:
+                future_rain = last_rain * 0.9 if last_rain * 0.9 >= 0.05 else 0.0
 
             # ── Ràng buộc vật lý chặn Autoregressive Drift ──
             if delta > 0:
-                if future_rain >= 0.5:
+                if future_rain >= 0.1:
                     # Đang mưa: cho phép tăng tối đa theo max_delta
                     delta = min(delta, max_delta)
                 else:
                     # KHÔNG MƯA: Xét xem hiện tại nước có đang dâng hay không?
-                    if initial_rate > 0.2:
-                        # TRƯỜNG HỢP VỠ ĐÊ / XẢ TRÀN / TRIỀU CƯỜNG:
-                        # Nước đang có đà dâng rõ rệt từ trước dù không mưa.
-                        # Cho phép mô hình dự đoán nước tiếp tục dâng, nhưng tốc độ dâng sẽ
-                        # đạt đỉnh và bắt đầu giảm dần đà trong vòng 6 giờ (72 steps) tiếp theo.
+                    if initial_rate > 0.05:
                         momentum_allowance = initial_rate * max(0.0, 1.0 - (step_idx / 72.0))
-                        delta = min(delta, momentum_allowance)
+                        if momentum_allowance > 0.0:
+                            # Vẫn còn đà dâng (trong 6h đầu): cho phép dâng chậm dần đến đỉnh
+                            delta = min(delta, momentum_allowance)
+                        else:
+                            # Đã qua đỉnh (hết đà dâng): Ép nước rút tự nhiên (thoát nước ~1.8cm/h)
+                            delta = -0.15
                     else:
-                        # Trường hợp bình thường: Phẳng lặng hoặc rút, không mưa.
-                        # Tuyệt đối không có lý do vật lý để nước tự động dâng lên.
-                        delta = 0.0
-            elif delta < -max_delta:
-                # Nước rút cũng không được rút quá gắt
-                delta = -max_delta
+                        # Không mưa, không có đà dâng ngay từ đầu: Nước rút tự nhiên
+                        delta = -0.15
+            elif delta < 0:
+                # Tuyệt đối không cho nước rút đột ngột trong bất kỳ hoàn cảnh nào.
+                if future_rain >= 0.05 and initial_rate > 0.0:
+                    # Đang mưa và đà đang dâng: Ép đồ thị phải đi lên theo đúng đà thực tế
+                    delta = min(0.5, initial_rate)
+                elif future_rain >= 0.05:
+                    # Đang mưa nhưng không có đà dâng: Giữ đi ngang
+                    delta = max(delta, -0.1)
+                else:
+                    # Tạnh mưa: Cho rút tự nhiên (tối đa 0.5cm/5p = 6cm/h)
+                    delta = max(delta, -0.5)
 
             next_cm = max(0.0, prev_corrected + delta)
             predictions.append(next_cm)

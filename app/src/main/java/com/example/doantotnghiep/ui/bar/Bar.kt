@@ -67,8 +67,7 @@ fun FloodGuardTopBar(
 ) {
     val unreadCount by viewmodel.unreadCount.collectAsState()
     val notifications by viewmodel.notification.collectAsState()
-
-    var showDialog by remember { mutableStateOf(false) }
+    val showDialog by viewmodel.showNotificationDialog.collectAsState()
 
     Column(modifier = Modifier.background(SoftBgTop)) {
         Spacer(modifier = Modifier.height(24.dp))
@@ -115,7 +114,7 @@ fun FloodGuardTopBar(
             },
             actions = {
                 Box(Modifier.padding(end = 8.dp)) {
-                    IconButton(onClick = {showDialog = true}) {
+                    IconButton(onClick = { viewmodel.setNotificationDialogVisible(true) }) {
                         Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.bar_notification), tint = Color.White)
                     }
                     if(unreadCount > 0) {
@@ -143,7 +142,7 @@ fun FloodGuardTopBar(
     if(showDialog) {
         NotificationDiaLog(
             logs = notifications,
-            onDismiss = {showDialog = false},
+            onDismiss = { viewmodel.setNotificationDialogVisible(false) },
             onItemClick = { log ->
                 viewmodel.markAsRead(log)
             },
