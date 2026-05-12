@@ -12,7 +12,8 @@ exports.processFloodData = functions.database.ref('/stations/{stationId}/data')
         if (!config) return null;
 
         const currentLevel = (config.calibrationOffset || 0) - (data.distanceRaw || 0);
-        const alertStateRef = admin.database().ref(`/stations/${stationId}/alertState`);
+        // IoT dùng sub-node riêng: alertState/iot — độc lập với alertState/ai của AI server
+        const alertStateRef = admin.database().ref(`/stations/${stationId}/alertState/iot`);
         const alertStateSnap = await alertStateRef.once('value');
         const alertState = alertStateSnap.val() || {};
         const lastWaterLevel = alertState.lastWaterLevel !== undefined ? alertState.lastWaterLevel : -1.0;

@@ -71,22 +71,17 @@ predictor = FloodPredictor(LOCAL_MODEL_PATH, LOCAL_SCALERS_PATH)
 print("[Main] Model TFLite + Scalers sẵn sàng.")
 
 
-# ─── Cooldown: lưu trong stations/{id}/alertState để không tạo node riêng ──
+# ─── Cooldown AI: lưu riêng tại stations/{id}/alertState/ai ──────────────
+# Hoàn toàn độc lập với alertState/iot của IoT (processData.js)
 def _get_cooldown_ok(station_id: str) -> bool:
-    alert_ref = db.reference(f"stations/{station_id}/alertState")
-    
-    # Dọn dẹp các trường cũ nếu có (lastAlertMs, lastAiAlertTime) và node root bị thừa
-    db.reference("flood_alert_state").delete()
-    db.reference(f"stations/{station_id}/alertState/lastAlertMs").delete()
-    db.reference(f"stations/{station_id}/alertState/lastAiAlertTime").delete()
-
-    last_ms   = alert_ref.child("lastAlertTime").get() or 0
+    ai_ref  = db.reference(f"stations/{station_id}/alertState/ai")
+    last_ms = ai_ref.child("lastAlertTime").get() or 0
     elapsed_h = (time.time() * 1000 - last_ms) / 3_600_000
     return elapsed_h >= COOLDOWN_HOURS
 
 def _set_last_alert(station_id: str, water_level_cm: float = 0.0):
     now_ms = int(time.time() * 1000)
-    db.reference(f"stations/{station_id}/alertState").update({
+    db.reference(f"stations/{station_id}/alertState/ai").update({
         "lastAlertTime":  now_ms,
         "lastWaterLevel": round(water_level_cm, 1),
     })
