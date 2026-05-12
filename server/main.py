@@ -14,7 +14,9 @@ import os
 import time
 import uuid
 import schedule
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+VN_TZ = timezone(timedelta(hours=7))  # UTC+7 — Railway chạy UTC, phải chỉ rõ múi giờ VN
 
 import firebase_admin
 from firebase_admin import credentials, db, storage
@@ -153,7 +155,7 @@ def _build_timeframe(predictions_slice: list[float], danger: float,
     max_idx      = max(card_indices, key=lambda i: predictions_slice[i])
     prev_lvl     = current_level_cm
     cards        = []
-    base_dt      = datetime.fromtimestamp(last_ts_ms / 1000)
+    base_dt      = datetime.fromtimestamp(last_ts_ms / 1000, tz=VN_TZ)
 
     for idx in card_indices:
         dt_card     = base_dt + timedelta(minutes=(idx + 1) * 5)
@@ -260,7 +262,7 @@ def process_station(station_id: str, config: dict):
             icon       = "🚨" if is_danger else "⚠️"
 
             # Tính toán thời gian dự báo
-            dt_now = datetime.fromtimestamp(last_ts / 1000)
+            dt_now = datetime.fromtimestamp(last_ts / 1000, tz=VN_TZ)
             dt_flood = dt_now + timedelta(minutes=minutes)
             flood_time_str = dt_flood.strftime("%H:%M")
 
