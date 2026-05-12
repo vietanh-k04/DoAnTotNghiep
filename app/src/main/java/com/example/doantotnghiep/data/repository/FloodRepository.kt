@@ -100,6 +100,26 @@ class FloodRepository @Inject constructor(
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    fun observeStationErrors(stationId: String?): Flow<com.example.doantotnghiep.data.remote.ErrorLog> = callbackFlow {
+        val ref = dbRef.child("stations").child(stationId ?: "").child("errors")
+            .orderByChild("timestamp").limitToLast(1)
+        
+        val listener = object : com.google.firebase.database.ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val errorLog = snapshot.getValue(com.example.doantotnghiep.data.remote.ErrorLog::class.java)?.copy(id = snapshot.key ?: "")
+                if (errorLog != null) {
+                    trySend(errorLog)
+                }
+            }
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        ref.addChildEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
     suspend fun getAllStations(): List<StationConfig> {
         var retries = 3
         while (retries > 0) {

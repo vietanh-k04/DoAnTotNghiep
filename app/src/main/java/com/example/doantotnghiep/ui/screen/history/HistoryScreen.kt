@@ -271,7 +271,7 @@ fun HistoryChartCard(
                     .height(160.dp)
             ) {
                 if (logs.isNotEmpty()) {
-                    HistoryWaterLevelChart(logs, selectedStation, isInactive)
+                    HistoryWaterLevelChart(logs, selectedStation, isInactive, selectedTimeRange)
                 } else {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
@@ -381,7 +381,8 @@ private fun TrendHeader(
 private fun HistoryWaterLevelChart(
     logs: List<LogUiModel>,
     selectedStation: StationConfig?,
-    isInactive: Boolean
+    isInactive: Boolean,
+    selectedTimeRange: String
 ) {
     val stationHeight = selectedStation?.calibrationOffset?.toFloat() ?: DEFAULT_STATION_HEIGHT
 
@@ -401,9 +402,16 @@ private fun HistoryWaterLevelChart(
         
         val validLogs = sampledLogs.reversed()
         
-        val actualStartTime = logs.lastOrNull()?.timestamp ?: 0L
+        val timeDiff = when (selectedTimeRange) {
+            "1 Giờ" -> 1L * 60 * 60 * 1000
+            "6 Giờ" -> 6L * 60 * 60 * 1000
+            "12 Giờ" -> 12L * 60 * 60 * 1000
+            else -> 1L * 60 * 60 * 1000
+        }
+        
         val actualEndTime = logs.firstOrNull()?.timestamp ?: 0L
-        val timeSpan = actualEndTime - actualStartTime
+        val actualStartTime = actualEndTime - timeDiff
+        val timeSpan = timeDiff
 
         val path = Path()
         var lastX = 0f

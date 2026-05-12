@@ -129,7 +129,7 @@ private fun AnalyticContent(
             ) {
                 TimeSelectorRow(uiState.selectedTime, onTimeSelected)
                 ForecastChartCard(uiState)
-                AiConfidenceSimpleCard()
+                /*AiConfidenceSimpleCard()*/
                 AiPredictionsSection(uiState.predictions, uiState.selectedTime)
             }
 

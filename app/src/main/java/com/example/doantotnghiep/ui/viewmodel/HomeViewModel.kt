@@ -55,7 +55,7 @@ class HomeViewModel @Inject constructor(
     private var lastObservedConfig: StationConfig? = null
 
     private var hasAlertedRecalibration = false
-    private var hasAlertedObstruction = false
+    private var lastProcessedErrorId: String? = null
 
     init {
         repository.syncNotificationLogs()
@@ -123,38 +123,51 @@ class HomeViewModel @Inject constructor(
         smoothedLevel = -1.0
         lastRawWaterLevel = -1.0
 
+        val startTime = System.currentTimeMillis()
         observeJob = viewModelScope.launch {
-            combine(
-                repository.observeStationConfig(stationId),
-                repository.getRealtimeDatabase(stationId)
-            ) { config, sensorData -> config to sensorData }
-                .collect { (config, sensorData) ->
-                    if (config != lastObservedConfig) {
-                        lastRawWaterLevel = -1.0
-                        lastObservedConfig = config
+            launch {
+                repository.observeStationErrors(stationId).collect { errorLog ->
+                    if (errorLog.type == "DISTANCE_ANOMALY" && errorLog.id != lastProcessedErrorId) {
+                        lastProcessedErrorId = errorLog.id
+                        _uiState.update { it.copy(showObstructionPopup = true) }
+                        launch { delay(5000L); dismissObstructionPopup() }
                     }
-
-                    if (sensorData == null || config == null) return@collect
-
-                    val offset = config.calibrationOffset ?: 0
-                    val rawDist = sensorData.distanceRaw ?: 0
-                    val rawWaterLevel = (offset - rawDist).toDouble()
-
-                    val validationState = WaterLevelValidator.validate(rawWaterLevel, lastRawWaterLevel)
-                    handleValidation(validationState, rawWaterLevel)
-
-                    val displayLevel = if (rawWaterLevel < 0) 0.0 else rawWaterLevel
-                    val waterPercent = if (offset > 0) (displayLevel.toFloat() / offset.toFloat()).coerceIn(0f, 1f) else 0f
-
-                    val status = determineStatus(displayLevel, config)
-
-
-                    val trend = calculateTrend(displayLevel)
-
-                    updateHomeUI(displayLevel, waterPercent, status, trend, sensorData)
-
-                    lastRawWaterLevel = rawWaterLevel
                 }
+            }
+
+            launch {
+                combine(
+                    repository.observeStationConfig(stationId),
+                    repository.getRealtimeDatabase(stationId)
+                ) { config, sensorData -> config to sensorData }
+                    .collect { (config, sensorData) ->
+                        if (config != lastObservedConfig) {
+                            lastRawWaterLevel = -1.0
+                            lastObservedConfig = config
+                        }
+
+                        if (sensorData == null || config == null) return@collect
+
+                        val offset = config.calibrationOffset ?: 0
+                        val rawDist = sensorData.distanceRaw ?: 0
+                        val rawWaterLevel = (offset - rawDist).toDouble()
+
+                        val validationState = WaterLevelValidator.validate(rawWaterLevel, lastRawWaterLevel)
+                        handleValidation(validationState, rawWaterLevel)
+
+                        val displayLevel = if (rawWaterLevel < 0) 0.0 else rawWaterLevel
+                        val waterPercent = if (offset > 0) (displayLevel.toFloat() / offset.toFloat()).coerceIn(0f, 1f) else 0f
+
+                        val status = determineStatus(displayLevel, config)
+
+
+                        val trend = calculateTrend(displayLevel)
+
+                        updateHomeUI(displayLevel, waterPercent, status, trend, sensorData)
+
+                        lastRawWaterLevel = rawWaterLevel
+                    }
+            }
         }
     }
 
@@ -168,17 +181,10 @@ class HomeViewModel @Inject constructor(
                 }
             }
             WaterLevelState.ERROR_OBSTRUCTION -> {
-                if (!hasAlertedObstruction) {
-                    _uiState.update { it.copy(showObstructionPopup = true) }
-                    hasAlertedObstruction = true
-                    viewModelScope.launch { delay(5000L); dismissObstructionPopup() }
-                }
+                // Not handled locally anymore, relies on Firebase errors
             }
             WaterLevelState.VALID -> {
                 hasAlertedRecalibration = false
-                if (!WaterLevelValidator.isStabilized(currentRaw, lastRawWaterLevel)) {
-                    hasAlertedObstruction = false
-                }
             }
         }
     }
