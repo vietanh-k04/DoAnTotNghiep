@@ -29,11 +29,10 @@
 Hệ thống được chia thành 3 lớp chức năng chuyên biệt hoạt động độc lập nhưng đồng bộ liền mạch:
 
 1. **Lớp Thiết Bị Ngoại Vi (IoT Node):** Trạm quan trắc thực địa liên tục lấy mẫu và truyền dữ liệu.
-2. **Lớp Xử Lý Trung Tâm (Cloud/AI):** - *Firebase Realtime Database:* Đóng vai trò Data Hub đồng bộ trạng thái.
+2. **Lớp Xử Lý Trung Tâm (Cloud/AI):**
+   - *Firebase Realtime Database:* Đóng vai trò Data Hub đồng bộ trạng thái.
    - *Backend Server (Python/Railway):* Lắng nghe dữ liệu mới, chạy suy luận mô hình LSTM và trả kết quả về Firebase.
-3. **Lớp Ứng Dụng (Mobile App):** "Máy khách mỏng" tập trung vào nhiệm vụ vẽ biểu đồ tương tác, hiển thị lịch sử và nhận thông báo khẩn.
-
----
+4. **Lớp Ứng Dụng (Mobile App):** Tập trung vào nhiệm vụ vẽ biểu đồ tương tác, hiển thị lịch sử và nhận thông báo khẩn.
 
 ---
 
@@ -85,9 +84,9 @@ Hệ thống được chia thành 3 lớp chức năng chuyên biệt hoạt đ�
 - **Mục đích:** Chứa các cài đặt của app và hướng dẫn sử dụng.
 - **Tính năng:** Tính năng đa ngôn ngữ, điều hướng tới cộng đồng Telegram.
 - **Minh họa:**
-<img width="720" height="1600" alt="Screenshot_20260517_211834" src="https://github.com/user-attachments/assets/d43fdf91-fa51-4aaa-8b8e-aeda6ce1798c" />
-<img width="720" height="1600" alt="Screenshot_20260517_211904" src="https://github.com/user-attachments/assets/885c24f0-c9fa-48bc-89da-61efea60f963" />
-<img width="720" height="1600" alt="Screenshot_20260517_211916" src="https://github.com/user-attachments/assets/bbc0f115-8a75-4751-99e3-35ea45f0f187" />
+<img width="230" height="500" alt="Screenshot_20260517_211834" src="https://github.com/user-attachments/assets/d43fdf91-fa51-4aaa-8b8e-aeda6ce1798c" />
+<img width="230" height="500" alt="Screenshot_20260517_211904" src="https://github.com/user-attachments/assets/885c24f0-c9fa-48bc-89da-61efea60f963" />
+<img width="230" height="500" alt="Screenshot_20260517_211916" src="https://github.com/user-attachments/assets/bbc0f115-8a75-4751-99e3-35ea45f0f187" />
 
 ---
 
