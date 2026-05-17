@@ -1,4 +1,4 @@
-# 🌊 FloodGuard: Hệ Thống Cảnh Báo Ngập Lụt Thông Minh (IoT & AI)
+# 🌊 FloodGuard: KIẾN TRÚC HỆ THỐNG CẢNH BÁO LŨ SỚM TÍCH HỢP TRÍ TUỆ NHÂN TẠO VÀ TRUYỀN THÔNG ĐA KÊNH TRONG HỆ SINH THÁI SỐ
 
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-0095D5?&style=for-the-badge&logo=kotlin&logoColor=white)
@@ -7,7 +7,7 @@
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 
-**FloodGuard** là đồ án tốt nghiệp chuyên ngành Công nghệ Thông tin, được xây dựng nhằm cung cấp một giải pháp toàn diện giám sát, phân tích và cảnh báo sớm nguy cơ ngập lụt. Hệ thống là sự kết hợp chặt chẽ giữa thiết bị phần cứng IoT tại thực địa, máy chủ Trí tuệ nhân tạo (AI) trên đám mây và ứng dụng di động Android trực quan.
+**FloodGuard** là đồ án tốt nghiệp nhằm xây dựng kiến trúc cảnh báo ngập lụt, ứng dụng các kiến thức đã biết để hoạt động ổn định
 
 👨‍💻 **Tác giả:** Nguyễn Việt Anh & Phạm Trần Ngọc Chiến  
 👩‍🏫 **Giảng viên hướng dẫn:** Th.S Nguyễn Thu Hiền  
@@ -16,29 +16,11 @@
 
 ## 🌟 Điểm Nổi Bật Của Dự Án (Core Features)
 
-Dự án thể hiện giải pháp hệ thống hoàn chỉnh (End-to-End Architecture), giải quyết bài toán thủy văn từ khâu thu thập dữ liệu thô cho đến cảnh báo người dùng cuối.
-
-### 1. Hạ Tầng IoT Quan Trắc Thời Gian Thực
-- **Vi điều khiển trung tâm:** Sử dụng NodeMCU ESP8266 làm Gateway quản lý và truyền tải dữ liệu qua Wi-Fi.
-- **Hệ thống cảm biến:** Tích hợp cảm biến siêu âm (HC-SR04) để đo khoảng cách mực nước, cảm biến mưa (Rain Sensor), và cảm biến môi trường (DHT11) giám sát nhiệt độ/độ ẩm.
-- **Tối ưu băng thông:** Dữ liệu thô được tiền xử lý, khử nhiễu ngay tại trạm và đóng gói chuẩn JSON trước khi đẩy lên Firebase với độ trễ tính bằng mili-giây.
-
-### 2. Mô Hình AI Dự Báo Học Sâu (Deep Learning)
-- **Mô hình LSTM:** Trái tim của hệ thống phân tích là mạng nơ-ron bộ nhớ dài - ngắn hạn (LSTM), được huấn luyện trên bộ dữ liệu thủy văn thực tế.
-- **Hiệu năng xuất sắc:** Mô hình đạt hệ số hiệu quả NSE **0.9057** và sai số RMSE chỉ **0.14035**.
-- **Dự báo cuốn chiếu:** Phân tích 24 bản ghi lịch sử gần nhất để tự động suy luận và đưa ra kịch bản biến động mực nước cho các khung giờ quan trọng: **1h, 6h, 12h và 24h** tới.
-
-### 3. Ứng Dụng Android Đạt Chuẩn Doanh Nghiệp (Enterprise-Level App)
-- **Kiến trúc hiện đại:** Xây dựng hoàn toàn bằng **Kotlin** kết hợp kiến trúc **MVVM** và **Clean Architecture**. Tích hợp **Dagger Hilt** để quản lý Dependency Injection.
-- **Jetpack Compose:** Giao diện người dùng được thiết kế bằng UI Toolkit mới nhất, kết hợp Lottie Animations tạo hiệu ứng sóng nước sinh động mô phỏng mực nước thực tế.
-- **Đồng bộ thời gian thực:** Trực quan hóa đồ thị động lực nước, hiển thị thẻ trạng thái cảnh báo (An toàn / Cảnh báo / Nguy hiểm) ngay lập tức khi Firebase có biến động.
-- **Tích hợp API phụ trợ:** Tự động chuyển đổi sang giao diện dự báo thời tiết (Weather API) khi người dùng không ở gần trạm quan trắc.
-
-### 4. Hệ Thống Cảnh Báo Đa Kênh (Multi-Channel Alerts)
-- Áp dụng cơ chế cảnh báo tập trung qua **Firebase Cloud Functions** (Node.js).
-- Ngay khi phát hiện mực nước thực tế hoặc dự báo chạm ngưỡng rủi ro, hệ thống lập tức phát lệnh:
-  - Bắn **Push Notification (FCM)** đến thiết bị Android của người dân.
-  - Gửi báo cáo khẩn cấp qua **Telegram Bot** cho lực lượng chức năng điều phối cứu hộ.
+### 1. Đăng lên báo ở Hội thảo khoa học quốc gia NSA với mã số ISBN
+### 2. Xây dựng được kiến trúc hệ thống hoàn chỉnh, hoạt động trơn chu
+### 3. Xây đựng server backend, server AI để xử lý dữ liệu
+### 4. Làm được hệ thống cảnh báo đa kênh (Bắn notification & Telegram)
+### 5. App Android thiết kế với những công nghệ mới, chức năng đa ngôn ngữ ...
 
 ---
 
@@ -53,6 +35,34 @@ Hệ thống được chia thành 3 lớp chức năng chuyên biệt hoạt đ�
 
 ---
 
+---
+
+## 📱 Giao Diện Ứng Dụng Android (Mobile App Interface)
+
+Ứng dụng được thiết kế với ngôn ngữ Material Design 3, tối ưu cho việc theo dõi dữ liệu khẩn cấp.
+
+### 1. Màn hình Giám sát (Home Screen)
+- **Mục đích:** Cung cấp cái nhìn tức thời về tình trạng tại trạm gần nhất.
+- **Tính năng:** Hiển thị mực nước hiện tại thông qua hiệu ứng sóng nước (Water Wave Effect). Cập nhật Nhiệt độ, Độ ẩm và Trạng thái mưa từ cảm biến.
+- **Minh họa:** `[Ảnh/Video màn hình Home]`
+
+### 2. Màn hình Phân tích AI (Analytic Screen)
+- **Mục đích:** Hiển thị kết quả dự báo từ máy chủ AI.
+- **Tính năng:** Biểu đồ xu hướng mực nước trong 24h. Nhãn dự báo thông minh (Tăng/Giảm/Đạt đỉnh). Hiển thị độ tin cậy của mô hình.
+- **Minh họa:** `[Ảnh/Video màn hình Analytic]`
+
+### 3. Màn hình Bản đồ (Map Screen)
+- **Mục đích:** Quản lý không gian địa lý của toàn bộ hệ thống.
+- **Tính năng:** Hiển thị các trạm đo trên bản đồ Google Maps. Vòng tròn trạng thái (Xanh - An toàn, Đỏ - Nguy hiểm). Cho phép Admin chỉnh sửa ngưỡng cảnh báo của trạm.
+- **Minh họa:** `[Ảnh/Video màn hình Map]`
+
+### 4. Màn hình Lịch sử & Thông báo (History & Notifications)
+- **Mục đích:** Tra cứu dữ liệu quá khứ và nhật ký cảnh báo.
+- **Tính năng:** Biểu đồ lịch sử mực nước theo các giờ.
+- **Minh họa:** `[Ảnh/Video màn hình History/Notification]`
+
+---
+
 ## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
 
 ### Mobile (Android)
@@ -60,7 +70,8 @@ Hệ thống được chia thành 3 lớp chức năng chuyên biệt hoạt đ�
 - **Giao diện:** Jetpack Compose, Material Design 3
 - **Kiến trúc:** MVVM, Clean Architecture
 - **Dependency Injection:** Dagger Hilt
-- **Dịch vụ & Bản đồ:** Google Maps Compose SDK, Retrofit2, Play Services Location
+- **Dịch vụ & Bản đồ:** Google Maps API, Weather API, Retrofit2
+- **Data:** DataStore
 
 ### AI & Backend Server
 - **Ngôn ngữ:** Python
